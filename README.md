@@ -31,6 +31,7 @@ graph LR
     end
 
     S <--> M
+    S <--> P
     T <--> M
     T <--> P
 ```
