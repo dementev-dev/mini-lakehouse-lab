@@ -1,0 +1,209 @@
+# version: "3.9"
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres-iceberg
+    environment:
+      POSTGRES_DB: iceberg          # БД под Iceberg catalog
+      POSTGRES_USER: iceberg
+      POSTGRES_PASSWORD: iceberg
+    ports:
+      - "5432:5432"                 # опционально, чтобы заходить с хоста через DBeaver/psql
+    networks:
+      - spark-net
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iceberg -d iceberg || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  iceberg-catalog-init:
+    image: postgres:16
+    container_name: iceberg-catalog-init
+    depends_on:
+      - postgres
+    networks:
+      - spark-net
+    environment:
+      - PGPASSWORD=iceberg
+    entrypoint: |
+      /bin/sh -c "set -e
+      echo 'Waiting for Postgres (iceberg catalog)...'
+      until pg_isready -h postgres-iceberg -U iceberg -d iceberg; do
+        sleep 1
+      done
+      cat <<'SQL' | psql -h postgres-iceberg -U iceberg -d iceberg
+      CREATE TABLE IF NOT EXISTS iceberg_tables (
+        catalog_name VARCHAR(255) NOT NULL,
+        table_namespace VARCHAR(255) NOT NULL,
+        table_name VARCHAR(255) NOT NULL,
+        metadata_location VARCHAR(1000),
+        previous_metadata_location VARCHAR(1000),
+        iceberg_type VARCHAR(5),
+        PRIMARY KEY (catalog_name, table_namespace, table_name)
+      );
+      CREATE TABLE IF NOT EXISTS iceberg_namespace_properties (
+        catalog_name VARCHAR(255) NOT NULL,
+        namespace VARCHAR(255) NOT NULL,
+        property_key VARCHAR(255),
+        property_value VARCHAR(1000),
+        PRIMARY KEY (catalog_name, namespace, property_key)
+      );
+      SQL
+      echo 'Iceberg JDBC catalog tables are ready'
+      "
+
+  spark-master:
+    build:
+      context: ./spark
+    image: de-spark-iceberg:3.5.1
+    container_name: spark-master
+    hostname: spark-master
+    depends_on:
+      - postgres
+    networks:
+      - spark-net
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    command: ["/opt/spark/sbin/start-master.sh"]
+    ports:
+      - "7077:7077"   # Spark master
+      - "8080:8080"   # Web UI мастера
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+
+  spark-worker-1:
+    image: de-spark-iceberg:3.5.1
+    # build:
+    #   context: ./spark    
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    networks:
+      - spark-net
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"   # Web UI первого воркера
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+
+  spark-worker-2:
+    image: de-spark-iceberg:3.5.1
+    # build:
+    #   context: ./spark
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    networks:
+      - spark-net
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"   # Web UI второго воркера (host 8082)
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+
+  minio:
+    image: minio/minio:RELEASE.2024-10-02T17-50-41Z
+    container_name: minio
+    hostname: minio
+    networks:
+      - spark-net
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-06-24T19-40-33Z-cpuv1
+    container_name: minio-init
+    hostname: minio-init
+    networks:
+      - spark-net
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO...';
+      until mc alias set minio http://minio:9000 minioadmin minioadmin 2>/dev/null; do
+        sleep 1;
+      done;
+      echo 'MinIO is up, creating bucket...';
+      mc mb -p minio/lakehouse || true;
+      echo 'Bucket lakehouse is ready';
+      exit 0;
+      "
+
+
+  jupyter:
+    build:
+      context: ./jupyter
+      args:
+        NB_UID: ${NB_UID:-1000}
+        NB_GID: ${NB_GID:-100}
+    # image: jupyter-spark-iceberg:3.5.1
+    container_name: jupyter
+    hostname: jupyter
+    depends_on:
+      - spark-master
+      - minio
+    networks:
+      - spark-net
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - PYTHONPATH=/opt/src
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./notebooks:/opt/work
+      - ./src:/opt/src:ro
+
+  trino:
+    image: trinodb/trino:478
+    container_name: trino
+    hostname: trino
+    networks:
+      - spark-net
+    depends_on:
+      - minio
+      - postgres
+      - iceberg-catalog-init
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_REGION=us-east-1
+    ports:
+      - "8090:8080"   # Web UI Trino
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog:ro
+
+networks:
+  spark-net:
+
+volumes:
+  postgres-data:
+  minio-data:

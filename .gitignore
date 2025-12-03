@@ -1,0 +1,23 @@
+.ipynb_checkpoints
+__pycache__/
+
+# Python bytecode / build artifacts
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+
+# Editor / IDE settings
+.idea/
+.vscode/
+
+# Local config
+.env
+
+# Logs
+*.log
