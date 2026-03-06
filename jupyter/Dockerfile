@@ -4,8 +4,11 @@ FROM de-spark-iceberg:3.5.1
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Только JupyterLab, без дополнительных пакетов
-RUN pip3 install --no-cache-dir "jupyterlab==4.2.5"
+# Устанавливаем JupyterLab и пакеты для инспекции стенда (MinIO, PostgreSQL)
+RUN pip3 install --no-cache-dir \
+      "jupyterlab==4.2.5" \
+      "boto3>=1.35,<2" \
+      "psycopg2-binary>=2.9,<3"
 
 # Создаём непривилегированного пользователя
 ARG NB_USER=jovyan
