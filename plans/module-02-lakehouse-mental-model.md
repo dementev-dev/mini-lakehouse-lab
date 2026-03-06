@@ -1,6 +1,6 @@
 # Модуль 2. Ментальная модель Lakehouse: storage, catalog, compute
 
-**Статус:** `Draft`
+**Статус:** `Ready for validation`
 **Последнее обновление:** `2026-03-07`
 
 ## Цель
