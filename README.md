@@ -46,6 +46,8 @@ graph LR
 
 ## Быстрый старт
 
+Подробный маршрут старта вынесен в [START_HERE.md](./START_HERE.md). Если нужен только краткий запуск, достаточно:
+
 1. Установить Docker и Docker Compose (см. раздел «Требования» ниже).
 2. В корне репозитория выполнить:
 
@@ -56,11 +58,13 @@ graph LR
 
 3. Открыть основные интерфейсы:
 
+   - Spark Master UI: `http://localhost:8080`
    - Trino Web UI: `http://localhost:8090`
    - MinIO Console: `http://localhost:9001`
    - JupyterLab (если включён): `http://localhost:8888`
 
-4. Актуальная структура курса описана в `docs/course_program.md`.
+4. Для входа в курс и Модуль 1 открыть `START_HERE.md`.
+5. Актуальная структура курса описана в `docs/course_program.md`.
 
 ---
 
@@ -79,6 +83,8 @@ graph LR
   * библиотека Iceberg нужной версии,
   * `pyspark`, `pyarrow` и базовый набор инструментов.
 * `jupyter/Dockerfile` — образ JupyterLab на базе Spark-образа.
+* `START_HERE.md` — канонический маршрут входа в курс до первого ноутбука.
+* `plans/` — внутренние living docs с планами работ по модулям курса.
 * `spark/spark-defaults.conf` — конфигурация Spark для работы с:
 
   * Iceberg-каталогом `lakehouse` (тип `jdbc`, метаданные в Postgres),
@@ -217,6 +223,7 @@ docker compose run --rm iceberg-catalog-init
 
 * В контейнере монтируется `./notebooks` в `/opt/work`.
 * `./src` доступен read-only в `/opt/src`, переменная `PYTHONPATH=/opt/src` уже установлена — можно импортировать функции из скриптов прямо в ноутбуках.
+* Первый канонический ноутбук курса: `notebooks/01_environment_and_smoke_test.ipynb`.
 
 ---
 

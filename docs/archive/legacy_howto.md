@@ -234,7 +234,7 @@
 - `src/spark/partitioned_table_demo.sql` — создание партиционированной Iceberg-таблицы и вставка данных.
 - `src/spark/schema_evolution_demo.sql` — демонстрация `ALTER TABLE` и добавления колонок.
 - `src/trino/schema_evolution_demo.sql` — чтение той же таблицы с эволюцией схемы из Trino.
-- `notebooks/03_partitioning_and_schema_evolution.ipynb` — интерактивный разбор тех же примеров в Jupyter.
+- интерактивный ноутбук для этой legacy-лабы удалён из актуального репозитория, чтобы не смешивать его с основным треком курса.
 
 **Вариант A: через Spark SQL и Trino CLI**
 
@@ -291,13 +291,13 @@
    docker compose exec trino trino --file /tmp/schema_evolution_demo.sql
    ```
 
-**Вариант B: через Jupyter-ноутбук**
+**Вариант B: через Jupyter вручную**
 
-- Открыть `http://localhost:8888` и запустить ноутбук `03_partitioning_and_schema_evolution.ipynb`.
-- Ноутбук:
-  - создаёт SparkSession, подключённый к кластеру;
-  - выполняет скрипты `partitioned_table_demo.sql` и `schema_evolution_demo.sql`;
-  - показывает агрегаты по партициям и данные до/после эволюции схемы в интерактивном виде.
+- Открыть `http://localhost:8888`, если нужен самостоятельный разбор SQL-примеров в Jupyter.
+- Повторить те же шаги вручную в кодовых ячейках:
+  - создать SparkSession, подключённый к кластеру;
+  - выполнить скрипты `partitioned_table_demo.sql` и `schema_evolution_demo.sql`;
+  - посмотреть агрегаты по партициям и данные до/после эволюции схемы в интерактивном виде.
 
 ---
 

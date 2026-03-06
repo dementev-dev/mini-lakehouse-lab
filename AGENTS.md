@@ -10,6 +10,7 @@ This repository contains a small teaching Lakehouse stack (Spark + Trino + Icebe
 - `trino/`: catalog config, e.g. `trino/catalog/lakehouse.properties`.
 - `src/`: PySpark and SQL examples split by engine (`src/spark/...`, `src/trino/...`).
 - `notebooks/`: demo notebooks (mounted into Jupyter at `/opt/work`).
+- `plans/`: internal living docs for implementation plans.
 
 Keep new examples in `src/` or `notebooks/`, and avoid mixing configuration and code.
 
@@ -37,7 +38,7 @@ There is no formal automated test suite yet. Validate changes by:
 
 - building and starting the stack, then
 - running `src/spark/cluster_smoke.py` or the SQL in `src/spark/iceberg_demo.sql`,
-- opening `notebooks/spark-basic-test.ipynb` in Jupyter and checking it runs end-to-end.
+- opening `notebooks/01_environment_and_smoke_test.ipynb` in Jupyter and checking it runs end-to-end.
 
 If you add tests, prefer `pytest` under `tests/` and mark slow, integration-heavy tests clearly.
 
