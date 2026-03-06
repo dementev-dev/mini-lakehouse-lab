@@ -60,7 +60,7 @@ graph LR
    - MinIO Console: `http://localhost:9001`
    - JupyterLab (если включён): `http://localhost:8888`
 
-4. Для пошаговых лабораторных работ см. файл `HOWTO.md`.
+4. Актуальная структура курса описана в `docs/course_program.md`.
 
 ---
 
@@ -381,7 +381,7 @@ spark.sql("INSERT INTO lakehouse.default.spark_table VALUES (1, 'Alice'), (2, 'B
 * Добавить отдельные каталоги Trino (например, `hive`, `tpch`) для демонстрации федеративных запросов.
 * Добавить пример интеграции с BI-инструментом (DBeaver/Metabase/Superset) поверх Trino.
 
-Для пошаговых учебных сценариев (лабораторных работ) см. файл `HOWTO.md`.
+Актуальная структура курса описана в `docs/course_program.md`. Старый `HOWTO` сохранён как архивный материал в `docs/archive/legacy_howto.md`.
 
 ---
 
