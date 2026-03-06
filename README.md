@@ -10,25 +10,35 @@
 
 ## Архитектура
 
-```mermaid
-graph LR
-    subgraph Storage
-        M[(MinIO<br/>S3-compatible)]
-    end
+Ниже показана упрощённая рабочая схема стенда: пользователь входит через `JupyterLab` и `Trino UI / CLI`, а `Spark` и `Trino` независимо работают поверх общего `storage` и общего `catalog`.
 
-    subgraph Catalog
-        P[(PostgreSQL<br/>Iceberg JDBC catalog)]
+```mermaid
+graph TB
+    U[Student / engineer]
+
+    subgraph Access
+        J[JupyterLab<br/>notebooks / PySpark]
+        Q[Trino UI / CLI<br/>ad hoc SQL]
     end
 
     subgraph Compute
-        S[Spark 3.5.1<br/>PySpark / SQL]
+        S[Spark cluster<br/>master + workers]
         T[Trino 478<br/>Iceberg connector]
     end
 
-    S <--> M
-    S <--> P
-    T <--> M
-    T <--> P
+    subgraph Shared Services
+        P[(PostgreSQL<br/>Iceberg JDBC catalog)]
+        M[(MinIO<br/>S3-compatible)]
+    end
+
+    U --> J
+    U --> Q
+    J --> S
+    Q --> T
+    S --> P
+    S --> M
+    T --> P
+    T --> M
 ```
 
 Коротко по ролям:
@@ -36,7 +46,8 @@ graph LR
 - `MinIO` хранит данные и служебные файлы Iceberg.
 - `PostgreSQL` хранит метаданные JDBC-каталога `lakehouse`.
 - `Spark` и `Trino` работают как два compute-движка поверх одного storage и одного catalog.
-- `Jupyter` служит точкой входа в практическую часть курса.
+- `JupyterLab` служит основной точкой входа в практическую часть курса.
+- `Trino UI / CLI` даёт отдельную точку входа для ad hoc SQL и проверки таблиц.
 
 ## С чего начать
 
@@ -96,6 +107,12 @@ docker compose ps
 - [spark/spark-defaults.conf](./spark/spark-defaults.conf) — конфигурация Spark-каталога `lakehouse`;
 - [trino/catalog/lakehouse.properties](./trino/catalog/lakehouse.properties) — конфигурация каталога Trino;
 - [docker-compose.yml](./docker-compose.yml) — фактический состав стенда.
+
+## Автор и менторство
+
+Этот репозиторий и материалы курса можно проходить самостоятельно, но при желании их можно разбирать вместе с автором как с ментором по `Data Engineering`.
+
+Если хочешь глубже пройти темы `Spark`, `Trino`, `Iceberg`, `Lakehouse` и связанные практики по `DE`, напиши: [@dementev_dev](https://t.me/dementev_dev).
 
 ## Лицензия
 
