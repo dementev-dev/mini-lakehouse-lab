@@ -59,9 +59,9 @@
 
 * вспомогательные скрипты в `src/spark` и `src/trino`;
 * инструкции по загрузке или подготовке учебных датасетов;
-* краткий glossary по терминам `storage`, `catalog`, `compute`, `table format`, `namespace`, `metadata`, `manifest`, `snapshot`, `time travel`, `schema evolution`, `compaction`, `vacuum`;
-* cheat sheet по типовым командам, адресам сервисов, ключевым путям и точкам входа;
-* опционально, отдельные mentor notes для ведения курса с ментором.
+* краткий [glossary](./glossary.md) по терминам `storage`, `catalog`, `compute`, `table format`, `namespace`, `metadata`, `manifest`, `snapshot`, `time travel`, `schema evolution`, `compaction`, `vacuum`;
+* [шпаргалка](./stack_reference.md#краткая-шпаргалка) по типовым командам, адресам сервисов, ключевым путям и точкам входа (секция в `stack_reference.md`);
+* опционально, [заметки для ментора](./mentor_notes.md) для ведения курса с ментором.
 
 ## 4. Трассировка Learning Outcomes на модули
 

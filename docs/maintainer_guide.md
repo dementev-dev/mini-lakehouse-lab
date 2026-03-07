@@ -21,6 +21,7 @@
 | Onboarding | `README.md`, `START_HERE.md` | Вход в репозиторий и первый пользовательский маршрут |
 | Runtime reference | `docs/stack_reference.md` | Технические детали стенда: порты, доступ, команды, smoke-тесты |
 | Course definition | `docs/course_prd.md`, `docs/course_program.md` | Границы курса, learning outcomes, структура модулей |
+| Reference materials | `docs/glossary.md`, `docs/mentor_notes.md` | Справочник терминов и заметки для ментора |
 | Practice materials | `notebooks/`, `src/` | Практика студента, smoke-скрипты, демонстрации, helper-логика |
 | Internal planning | `plans/` | Внутренние living docs по разработке материалов |
 | Archive | `docs/archive/` | Исторические материалы, не входящие в актуальный маршрут |

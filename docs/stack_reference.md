@@ -172,9 +172,69 @@ docker compose exec spark-master \
   /opt/spark/bin/spark-sql -e "DROP TABLE IF EXISTS lakehouse.default.spark_trino_smoke"
 ```
 
+## Краткая шпаргалка
+
+### Ключевые S3-пути курса
+
+| Путь | Назначение |
+| --- | --- |
+| `s3a://lakehouse/raw/nyc_taxi/` | raw-зона: исходные Parquet и CSV |
+| `s3a://lakehouse/warehouse/bronze/` | bronze-таблицы Iceberg |
+| `s3a://lakehouse/warehouse/silver/` | silver-таблицы Iceberg |
+
+### Основные таблицы курса
+
+| Таблица | Создаётся в |
+| --- | --- |
+| `lakehouse.bronze.nyc_taxi_yellow` | Модуль 4 |
+| `lakehouse.bronze.taxi_zone_lookup` | Модуль 4 (самостоятельное задание) |
+| `lakehouse.silver.nyc_taxi_yellow` | Модуль 5 |
+
+### Часто используемые Spark SQL
+
+```sql
+-- Просмотр структуры каталога
+SHOW TABLES IN lakehouse.bronze;
+
+-- Метаданные Iceberg
+SELECT * FROM <table>.snapshots;
+SELECT * FROM <table>.files;
+
+-- Обслуживание (Модуль 8)
+CALL lakehouse.system.rewrite_data_files(table => '<namespace>.<table>');
+CALL lakehouse.system.expire_snapshots(table => '<namespace>.<table>', retain_last => N);
+
+-- Rollback (Модуль 7)
+CALL lakehouse.system.rollback_to_snapshot(table => '<namespace>.<table>', snapshot_id => <id>);
+
+-- Time travel (Модуль 7)
+SELECT * FROM <table> VERSION AS OF <snapshot_id>;
+```
+
+### Часто используемые Trino SQL
+
+```sql
+SHOW SCHEMAS FROM lakehouse;
+SHOW TABLES FROM lakehouse.silver;
+DESCRIBE lakehouse.silver.nyc_taxi_yellow;
+
+-- Time travel (синтаксис Trino)
+SELECT * FROM <table> FOR VERSION AS OF <snapshot_id>;
+```
+
+### Монтирование (хост → контейнер)
+
+| Хост | Контейнер | Режим |
+| --- | --- | --- |
+| `./notebooks` | `/opt/work` | read-write |
+| `./src` | `/opt/src` | read-only |
+| `./data` | `/opt/data` | read-only |
+
 ## Когда какой документ использовать
 
 - `README.md` — чтобы понять, что это за репозиторий и куда идти дальше.
 - `START_HERE.md` — чтобы впервые поднять стенд и пройти Модуль 1.
-- `stack_reference.md` — чтобы быстро вспомнить порты, команды, точки доступа и smoke-тесты.
+- `stack_reference.md` — чтобы быстро вспомнить порты, команды, точки доступа, шпаргалку и smoke-тесты.
 - `course_program.md` — чтобы понять учебную траекторию дальше первого модуля.
+- `glossary.md` — чтобы вернуться к определению термина (storage, catalog, compute, snapshot и др.).
+- `mentor_notes.md` — заметки для ведения курса с ментором (опционально).
