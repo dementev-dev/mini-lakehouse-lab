@@ -1,56 +1,62 @@
 # Repository Guidelines
 
-This repository contains a small teaching Lakehouse stack (Spark + Trino + Iceberg + MinIO) intended for demos and mentoring.
+Этот репозиторий теперь представляет собой не только локальный Lakehouse-стенд, но и каркас учебного курса `Lakehouse без магии`.
 
-## Project Structure & Module Organization
+В `AGENTS.md` держим только стабильные правила для автоматизированных правок. Изменчивый контекст проекта, карта репозитория и правила синхронизации вынесены в [docs/maintainer_guide.md](docs/maintainer_guide.md).
 
-- `docker-compose.yml`: orchestrates Spark, Trino, MinIO, PostgreSQL, and Jupyter.
-- `spark/`: Spark image (`Dockerfile`) and `spark-defaults.conf`.
-- `jupyter/`: Jupyter image (`Dockerfile`) based on the Spark image.
-- `trino/`: catalog config, e.g. `trino/catalog/lakehouse.properties`.
-- `src/`: PySpark and SQL examples split by engine (`src/spark/...`, `src/trino/...`).
-- `notebooks/`: demo notebooks (mounted into Jupyter at `/opt/work`).
+## Канонические документы
 
-Keep new examples in `src/` or `notebooks/`, and avoid mixing configuration and code.
+- `README.md` — верхнеуровневое описание репозитория, архитектуры и точек входа.
+- `START_HERE.md` — первый маршрут для студента до запуска ноутбуков.
+- `docs/stack_reference.md` — технический reference по сервисам, портам, доступу и smoke-тестам.
+- `docs/course_prd.md` — рамки курса, learning outcomes, scope и out of scope.
+- `docs/course_program.md` — модульная структура курса и состав учебных материалов.
+- `docs/glossary.md` — справочник терминов курса.
+- `docs/mentor_notes.md` — заметки для ведения курса с ментором (опционально).
+- `docs/maintainer_guide.md` — карта репозитория и правила синхронизации изменений.
+- `plans/` — внутренние living docs; не источник истины для студентского маршрута.
+- `docs/archive/` — архивные материалы; не использовать как актуальную документацию без явного запроса.
 
-## Build, Test, and Development Commands
+## Структура репозитория
 
-Run from the repo root:
+- `docker-compose.yml`, `spark/`, `trino/`, `jupyter/` — исполняемый стенд.
+- `notebooks/`, `src/` — учебные материалы и вспомогательные примеры.
+- `docs/`, `START_HERE.md`, `README.md` — входная и методическая документация.
+- `plans/` — внутреннее планирование.
 
-- `docker compose build`: build custom Spark and Jupyter images.
-- `docker compose up -d`: start the full stack in the background.
-- `docker compose ps`: check container status.
-- `docker compose down -v`: stop the stack and remove volumes (for a clean slate).
+Новые учебные примеры держи в `src/` или `notebooks/`, а конфигурацию стенда не смешивай с учебным контентом.
 
-Use `docker compose logs -f <service>` when debugging (`spark-master`, `trino`, `minio`, etc.).
+## Правила изменений
 
-## Coding Style & Naming Conventions
+- Сначала меняй канонический документ для соответствующего слоя, потом синхронизируй связанные ссылки и упоминания.
+- Если меняются сервисы, порты, имена контейнеров, образы или команды запуска, обновляй как минимум `README.md`, `START_HERE.md`, `docs/stack_reference.md` и затронутые примеры.
+- Если меняются scope курса, learning outcomes или модульная структура, обновляй `docs/course_prd.md` и `docs/course_program.md`, а не только `plans/`.
+- Поддерживай согласованный маршрут `README -> START_HERE -> docs/course_program.md -> notebooks/src`.
+- Не дублируй крупные фрагменты между документами, если можно сослаться на канонический файл.
+- Legacy-материалы явно помечай как архивные и не возвращай их в основной маршрут без явного запроса.
 
-- Python: PEP 8, 4-space indentation, snake_case for functions, lower_snake_case for files (e.g. `spark_join_demo.py`).
-- SQL: uppercase keywords, `schema.table` naming, short English identifiers; comments may be in Russian.
-- Compose/Docker: service names kebab-case (`spark-master`), env vars UPPER_SNAKE_CASE.
-- Prefer small, focused examples; reuse helpers from `src/` in notebooks where possible.
+## Стиль и содержание
 
-## Testing Guidelines
+- Сохраняй русский язык в student-facing документации, если задача не про перевод.
+- Предпочитай небольшие, сфокусированные примеры и не усложняй стенд без явного запроса.
+- Держи ноутбуки понятными для самостоятельного прохождения; переиспользуемую логику выноси в `src/`.
+- Не добавляй обязательные шаги со скачиванием данных прямо из ноутбуков, если это можно оформить через onboarding-документацию.
 
-There is no formal automated test suite yet. Validate changes by:
+## Проверка изменений
 
-- building and starting the stack, then
-- running `src/spark/cluster_smoke.py` or the SQL in `src/spark/iceberg_demo.sql`,
-- opening `notebooks/spark-basic-test.ipynb` in Jupyter and checking it runs end-to-end.
+- Для изменений только в документации проверь согласованность ссылок, терминов и маршрута прохождения.
+- Для изменений стенда сначала используй лёгкую валидацию вроде `docker compose config`.
+- Если меняется поведение стенда или учебных примеров, по возможности проверь сценарии из `src/spark/cluster_smoke.py`, `src/spark/iceberg_smoke.py`, `src/trino/iceberg_smoke.sql` или `notebooks/01_environment_and_smoke_test.ipynb`.
+- Если полная проверка не выполнялась, укажи это явно.
 
-If you add tests, prefer `pytest` under `tests/` and mark slow, integration-heavy tests clearly.
+## Commit & PR Notes
 
-## Commit & Pull Request Guidelines
-
-- Commits: short, descriptive subject in Russian or English, present tense (e.g. `Спарк запускается, создаётся тестовая таблица`, `Add Iceberg join demo`).
-- Keep changes small and focused; update `README.md` when behavior, ports, or images change.
-- PRs should describe the problem, the solution, and any impact on local setup; include screenshots (Trino UI, MinIO, Jupyter) when UI changes are relevant.
+- Коммиты: короткий subject в настоящем времени, на русском или английском.
+- Изменения поведения, портов, маршрута входа или состава материалов обычно требуют обновления документации рядом с кодом.
+- Избегай больших рефакторингов структуры без явного запроса пользователя.
 
 ## Agent-Specific Instructions
 
-When editing as an automated agent:
-
-- Respect this file and avoid large refactors without an explicit request.
-- Preserve Russian user-facing text unless the change is explicitly about translation.
-- Prefer minimal changes that keep the demo simple and robust for newcomers.
+- Уважай существующие изменения пользователя и не откатывай их без запроса.
+- Предпочитай минимальные изменения, которые делают курс проще и устойчивее для новичка.
+- Если непонятно, какой маршрут сейчас актуален, доверяй `START_HERE.md` и `docs/course_program.md`, а не старым HOWTO или планам.

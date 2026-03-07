@@ -4,18 +4,24 @@ FROM de-spark-iceberg:3.5.1
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Только JupyterLab, без дополнительных пакетов
-RUN pip3 install --no-cache-dir "jupyterlab==4.2.5"
+# Устанавливаем JupyterLab и пакеты для инспекции стенда (MinIO, PostgreSQL)
+RUN pip3 install --no-cache-dir \
+      "jupyterlab==4.2.5" \
+      "boto3>=1.35,<2" \
+      "psycopg2-binary>=2.9,<3" \
+      "trino>=0.328"
 
 # Создаём непривилегированного пользователя
 ARG NB_USER=jovyan
 ARG NB_UID=1000
+ARG NB_GID=100
 
-RUN useradd --uid ${NB_UID} -m -s /bin/bash ${NB_USER} \
+RUN if ! getent group ${NB_GID} >/dev/null; then groupadd --gid ${NB_GID} ${NB_USER}; fi \
+ && useradd --uid ${NB_UID} --gid ${NB_GID} -m -s /bin/bash ${NB_USER} \
  && mkdir -p /opt/work \
- && chown -R ${NB_UID}:${NB_UID} /opt/work
+ && chown -R ${NB_UID}:${NB_GID} /opt/work
 
-USER ${NB_UID}
+USER ${NB_UID}:${NB_GID}
 WORKDIR /opt/work
 EXPOSE 8888
 

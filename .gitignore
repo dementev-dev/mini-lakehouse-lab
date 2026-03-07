@@ -21,3 +21,9 @@ venv/
 
 # Logs
 *.log
+
+# Dataset (downloaded by student, not stored in repo)
+/data/*
+!/data/nyc_taxi/
+/data/nyc_taxi/*
+!/data/nyc_taxi/.gitkeep
