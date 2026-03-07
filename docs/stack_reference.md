@@ -110,9 +110,12 @@ docker compose run --rm iceberg-catalog-init
 - адрес: `http://localhost:8888`
 - `./notebooks` смонтирован как `/opt/work`
 - `./src` смонтирован read-only как `/opt/src`
+- `./data` смонтирован read-only как `/opt/data`
 - `PYTHONPATH=/opt/src`
 
 Первый ноутбук курса: `notebooks/01_environment_and_smoke_test.ipynb`.
+
+Для Модуля 3 локально скачанный data bundle должен лежать на хосте в `./data/nyc_taxi` и будет доступен внутри Jupyter по пути `/opt/data/nyc_taxi`.
 
 ## Как связаны Spark, Trino, PostgreSQL и MinIO
 

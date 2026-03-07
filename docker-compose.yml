@@ -181,6 +181,7 @@ services:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - ./notebooks:/opt/work
       - ./src:/opt/src:ro
+      - ./data:/opt/data:ro
 
   trino:
     image: trinodb/trino:478

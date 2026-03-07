@@ -1,6 +1,6 @@
 # START HERE
 
-Этот документ нужен для первого входа в курс и прохождения Модуля 1: поднять стенд, проверить сервисы, открыть интерфейсы и выполнить базовый smoke test.
+Этот документ нужен для первого входа в курс: поднять стенд, проверить сервисы, открыть интерфейсы, выполнить базовый smoke test и подготовить локальный data bundle для следующих модулей.
 
 ## Маршрут прохождения
 
@@ -9,7 +9,8 @@
 3. Убедиться, что контейнеры живы.
 4. Открыть основные UI.
 5. Зайти в Jupyter и выполнить `notebooks/01_environment_and_smoke_test.ipynb`.
-6. При проблемах использовать логи и шаги диагностики из этого документа.
+6. Перед Модулем 3 подготовить учебный датасет в `./data/nyc_taxi`.
+7. При проблемах использовать логи и шаги диагностики из этого документа.
 
 ## Prerequisites
 
@@ -100,8 +101,10 @@ notebooks/01_environment_and_smoke_test.ipynb
 
 - `./notebooks` смонтирован в контейнер как `/opt/work`;
 - `./src` смонтирован read-only как `/opt/src`;
+- `./data` смонтирован read-only как `/opt/data`;
 - `PYTHONPATH=/opt/src`, поэтому helper-скрипты из `src/` доступны для импорта в ноутбуках;
-- первый ноутбук курса: `01_environment_and_smoke_test.ipynb`.
+- первый ноутбук курса: `01_environment_and_smoke_test.ipynb`;
+- локальный учебный data bundle для Модуля 3 должен быть доступен внутри Jupyter по пути `/opt/data/nyc_taxi`.
 
 ## Базовая диагностика
 
@@ -146,8 +149,42 @@ docker compose up -d
 
 Используй полный reset, если хочешь пройти практику заново с чистого состояния.
 
+## Подготовка учебного датасета (перед Модулем 3)
+
+Перед `notebooks/03_raw_ingest_and_first_read.ipynb` нужно заранее скачать учебный data bundle на хост, а не изнутри ноутбука.
+
+Скачай каноническое учебное подмножество `NYC TLC Yellow Taxi Trip Records`:
+
+```bash
+curl -fLo data/nyc_taxi/yellow_tripdata_2024-01.parquet \
+  https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet
+curl -fLo data/nyc_taxi/yellow_tripdata_2024-02.parquet \
+  https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-02.parquet
+curl -fLo data/nyc_taxi/yellow_tripdata_2024-03.parquet \
+  https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-03.parquet
+curl -fLo data/nyc_taxi/taxi_zone_lookup.csv \
+  https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+```
+
+Проверь, что файлы на месте:
+
+```bash
+ls -lh data/nyc_taxi/
+```
+
+Минимальный набор для курса:
+
+- `yellow_tripdata_2024-01.parquet`
+- `yellow_tripdata_2024-02.parquet`
+- `yellow_tripdata_2024-03.parquet`
+- `taxi_zone_lookup.csv`
+
+Если хочешь расширенный режим, можешь скачать все 12 месяцев `2024`, но основной маршрут курса и примеры опираются на первые 3 месяца.
+
 ## Что делать дальше
 
 - пройти `notebooks/01_environment_and_smoke_test.ipynb`;
+- пройти `notebooks/02_lakehouse_mental_model.ipynb`;
+- подготовить data bundle по инструкции выше и пройти `notebooks/03_raw_ingest_and_first_read.ipynb`;
 - свериться с программой курса в `docs/course_program.md`;
-- после прохождения Модуля 1 переходить к следующим учебным материалам.
+- после прохождения первых модулей переходить к следующим учебным материалам.
