@@ -181,6 +181,14 @@ ls -lh data/nyc_taxi/
 
 Если хочешь расширенный режим, можешь скачать все 12 месяцев `2024`, но основной маршрут курса и примеры опираются на первые 3 месяца.
 
+## Подключение DBeaver к Trino (перед Модулем 6)
+
+- Зачем: в Модуле 6 можно работать с Trino через DBeaver параллельно с ноутбуком — привычный SQL-интерфейс.
+- Предусловие: DBeaver установлен (ссылка на [dbeaver.io/download](https://dbeaver.io/download/)). Необязателен — ноутбук работает без DBeaver.
+- Шаги: New Database Connection -> Trino. Host: `localhost`. Port: `8090`. Database/Catalog: `lakehouse`. Username: любая строка (напр. `student`). Password: пусто. Test Connection -> Finish.
+- Проверка: `SHOW SCHEMAS FROM lakehouse;`. Ожидаем: `bronze`, `default`, `information_schema`, `silver`.
+- Troubleshooting: стенд поднят? контейнер `trino` Up? порт 8090 свободен?
+
 ## Что делать дальше
 
 - пройти `notebooks/01_environment_and_smoke_test.ipynb`;

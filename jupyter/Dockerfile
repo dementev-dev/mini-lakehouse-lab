@@ -8,7 +8,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN pip3 install --no-cache-dir \
       "jupyterlab==4.2.5" \
       "boto3>=1.35,<2" \
-      "psycopg2-binary>=2.9,<3"
+      "psycopg2-binary>=2.9,<3" \
+      "trino>=0.328"
 
 # Создаём непривилегированного пользователя
 ARG NB_USER=jovyan

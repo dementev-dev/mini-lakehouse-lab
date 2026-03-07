@@ -80,6 +80,11 @@ SHOW SCHEMAS FROM lakehouse;
 SHOW TABLES FROM lakehouse.default;
 ```
 
+**Подключение через DBeaver:**
+- Host: `localhost`, Port: `8090`, Catalog: `lakehouse`, User: любая строка, Password: нет.
+- Driver: Trino (встроен в DBeaver).
+- Проверка: `SHOW SCHEMAS FROM lakehouse;`.
+
 ### MinIO
 
 - S3 endpoint: `http://localhost:9000`
