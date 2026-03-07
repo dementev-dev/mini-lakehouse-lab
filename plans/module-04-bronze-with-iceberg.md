@@ -70,9 +70,9 @@
 
 Bronze нужен Модулю 5. Spark-сессия останавливается. Явное пояснение в финале ноутбука: «Мы намеренно не удаляем bronze-таблицы. В Модуле 5 мы будем строить silver на основе bronze.»
 
-### Taxi zone lookup: самостоятельное задание
+### Taxi zone lookup: демо-секция
 
-Студент создаёт `lakehouse.bronze.taxi_zone_lookup` как упражнение. Это подготовка к join в Модуле 5 (silver).
+Создание `lakehouse.bronze.taxi_zone_lookup` входит в демонстрационный код ноутбука (Секция 8), а не в самостоятельное задание. Причина: Модуль 5 использует lookup для JOIN в демо-коде — если lookup не создан, студент не может пройти Модуль 5, даже выполняя только готовые ячейки. Принцип: демо-ячейки последующих модулей не должны зависеть от домашних заданий предыдущих.
 
 ## План работ
 
@@ -160,11 +160,16 @@ Bronze нужен Модулю 5. Spark-сессия останавливает�
   - Bronze ≠ raw. Raw — неизменяемый архив файлов. Bronze — управляемая таблица, которую можно пересоздать из raw.
   - В Модуле 5 — silver: очистка, трансформации, бизнес-логика.
 
-### Секция 7: Самостоятельное задание
-- **[md]** Инструкция: (1) прочитать `taxi_zone_lookup.csv` из raw-зоны, (2) создать `lakehouse.bronze.taxi_zone_lookup` с DDL (LocationID INT, Borough STRING, Zone STRING, service_zone STRING), (3) загрузить данные, (4) проверить через `spark.table(...)`, (5) осмотреть snapshots.
-- **[code]** 5 пустых ячеек `# Ваш код: ...`.
+### Секция 7: Вторая bronze-таблица: taxi_zone_lookup
+- **[md]** В raw-зоне кроме Yellow Taxi лежит `taxi_zone_lookup.csv` — справочник зон. В Модуле 5 он понадобится для JOIN. Загружаем в bronze по тому же паттерну CTAS, но из CSV.
+- **[code]** Чтение CSV через `spark.read.option("header", "true").option("inferSchema", "true").csv(...)`. Вывод count, schema, preview.
+- **[code]** CTAS: `CREATE OR REPLACE TABLE lakehouse.bronze.taxi_zone_lookup USING iceberg AS SELECT CAST(LocationID AS INT) AS LocationID, Borough, Zone, service_zone FROM raw_zone_lookup`. Верификация: count, show.
 
-### Секция 8: Checkpoint
+### Секция 8: Самостоятельное задание
+- **[md]** Инструкция: осмотреть внутреннюю структуру `taxi_zone_lookup` теми же инструментами, что в Секциях 5 и 6. (1) Вывести snapshots и files. (2) Сравнить количество data files с `nyc_taxi_yellow` и объяснить разницу.
+- **[code]** 2 пустых ячейки `# Ваш код: ...`.
+
+### Секция 9: Checkpoint
 - **[md]** Вопросы для самопроверки:
   1. Чем отличается `spark.read.parquet("s3a://...")` от `spark.table("lakehouse.bronze.nyc_taxi_yellow")`?
   2. Что хранит snapshot и зачем он нужен?
@@ -173,8 +178,8 @@ Bronze нужен Модулю 5. Spark-сессия останавливает�
   5. Что произойдёт, если удалить один data file из MinIO, но не изменить metadata?
   6. Можете ли вы показать таблицу в MinIO Console (через браузер)?
 
-### Секция 9: Завершение
-- **[md]** «Мы намеренно не удаляем bronze-таблицы. В Модуле 5 мы будем строить silver-слой на основе `lakehouse.bronze.nyc_taxi_yellow`.»
+### Секция 10: Завершение
+- **[md]** «Мы намеренно не удаляем bronze-таблицы (`nyc_taxi_yellow` и `taxi_zone_lookup`). Они понадобятся в Модуле 5, где мы будем строить silver-слой.»
 - **[code]** `spark.stop()`.
 
 ### Дизайн-решения по ноутбуку
