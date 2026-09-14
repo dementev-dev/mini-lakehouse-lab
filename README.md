@@ -70,6 +70,8 @@ docker compose up -d
 docker compose ps
 ```
 
+Зафиксированные исторические образы MinIO загружаются из официального Quay registry; подробности — в [техническом reference](./docs/stack_reference.md#minio).
+
 После старта:
 
 | UI | Адрес |

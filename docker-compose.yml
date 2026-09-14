@@ -121,7 +121,7 @@ services:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
   minio:
-    image: minio/minio:RELEASE.2024-10-02T17-50-41Z
+    image: quay.io/minio/minio:RELEASE.2024-10-02T17-50-41Z
     container_name: minio
     hostname: minio
     networks:
@@ -137,7 +137,7 @@ services:
       - minio-data:/data
 
   minio-init:
-    image: minio/mc:RELEASE.2024-06-24T19-40-33Z-cpuv1
+    image: quay.io/minio/mc:RELEASE.2024-06-24T19-40-33Z-cpuv1
     container_name: minio-init
     hostname: minio-init
     networks:

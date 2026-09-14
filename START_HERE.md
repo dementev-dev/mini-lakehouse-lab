@@ -50,6 +50,8 @@
 docker compose build
 ```
 
+Зафиксированные образы MinIO загружаются из `quay.io`; их версии и назначение описаны в [техническом reference](./docs/stack_reference.md#minio).
+
 ### 2. Поднять стенд
 
 ```bash

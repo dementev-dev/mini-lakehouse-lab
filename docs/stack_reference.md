@@ -92,6 +92,8 @@ SHOW TABLES FROM lakehouse.default;
 - логин: `minioadmin`
 - пароль: `minioadmin`
 
+Стенд использует зафиксированные исторические образы MinIO Server и `mc` из официального namespace `quay.io/minio`. Эти версии подходят для локального курса, но больше не получают обновлений upstream и не предназначены для production.
+
 Бакет `lakehouse` обычно создаётся автоматически контейнером `minio-init`.
 
 ### PostgreSQL
