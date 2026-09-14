@@ -113,6 +113,9 @@ docker compose run --rm iceberg-catalog-init
 ### JupyterLab
 
 - адрес: `http://localhost:8888`
+- порт опубликован только на `127.0.0.1` хоста;
+- аутентификация и XSRF-проверка отключены для локального одно-пользовательского стенда;
+- через VS Code Remote-SSH используй `Existing Jupyter Server` с адресом `http://127.0.0.1:8888/` без token;
 - `./notebooks` смонтирован как `/opt/work`
 - `./src` смонтирован read-only как `/opt/src`
 - `./data` смонтирован read-only как `/opt/data`

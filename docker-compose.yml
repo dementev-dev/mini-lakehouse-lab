@@ -175,8 +175,17 @@ services:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - PYTHONPATH=/opt/src
+    command:
+      - jupyter
+      - lab
+      - --ip=0.0.0.0
+      - --port=8888
+      - --no-browser
+      - --IdentityProvider.token=
+      - --PasswordIdentityProvider.hashed_password=
+      - --ServerApp.disable_check_xsrf=True
     ports:
-      - "8888:8888"
+      - "127.0.0.1:8888:8888"
     volumes:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
       - ./notebooks:/opt/work

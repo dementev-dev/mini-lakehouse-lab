@@ -79,6 +79,8 @@ docker compose ps
 | Trino | `http://localhost:8090` |
 | MinIO Console | `http://localhost:9001` |
 
+JupyterLab опубликован только на loopback-интерфейсе хоста и рассчитан на локальный одно-пользовательский стенд. Подключение через VS Code Remote-SSH описано в [START_HERE.md](./START_HERE.md#как-работать-в-jupyter).
+
 ## Документы для прохождения
 
 - [START_HERE.md](./START_HERE.md) — первый маршрут: prerequisites, запуск, диагностика.

@@ -99,6 +99,9 @@ notebooks/01_environment_and_smoke_test.ipynb
 
 ## Как работать в Jupyter
 
+- JupyterLab доступен без логина только с хоста, на котором запущен стенд;
+- при работе через VS Code Remote-SSH выбери `Existing Jupyter Server` и укажи `http://127.0.0.1:8888/`;
+- token в адрес добавлять не нужно: аутентификация и XSRF-проверка отключены для локального одно-пользовательского сценария;
 - `./notebooks` смонтирован в контейнер как `/opt/work`;
 - `./src` смонтирован read-only как `/opt/src`;
 - `./data` смонтирован read-only как `/opt/data`;
