@@ -287,7 +287,7 @@ RUN pip3 install --no-cache-dir \
 - `notebooks/06_spark_and_trino_on_same_table.ipynb` выполняется сверху вниз после прохождения Модуля 5 без внешних зависимостей (DBeaver не обязателен).
 - Ноутбук содержит живой цикл write → read: Spark создаёт таблицу, Trino читает.
 - Методика курса: объяснение -> демонстрация -> самостоятельное повторение -> checkpoint.
-- Паттерны Модулей 1-5: SparkSession без `.master()`, `setLogLevel("ERROR")`.
+- Паттерны Модулей 1-5: SparkSession с адресом кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`.
 - Trino-запросы — в исполняемых code cells через Python `trino` клиент. DBeaver-подсказки — в markdown.
 - При отсутствии silver — assert с отсылкой к Модулю 5. Схема silver: не менее 24 колонок (допускается расширенная схема после Модуля 5).
 - Текст на русском с параллелями к PostgreSQL/Greenplum.

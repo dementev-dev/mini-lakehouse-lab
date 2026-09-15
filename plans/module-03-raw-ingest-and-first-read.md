@@ -96,7 +96,7 @@ volumes:
 
 ### Секция 3: Первое чтение в Spark
 - **[md]** Разница `spark.read.parquet("s3a://...")` (raw-файлы) vs `spark.table(...)` (управляемая Iceberg-таблица). Мы пока на этапе raw, Iceberg-таблица появится в Модуле 4.
-- **[code]** Создание SparkSession (паттерн из Module 2 — без `.master()`, `setLogLevel("ERROR")`).
+- **[code]** Создание SparkSession (паттерн из Module 2 — адрес кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`).
 - **[code]** Чтение одного файла: `spark.read.parquet("s3a://lakehouse/raw/nyc_taxi/yellow_tripdata_2024-01.parquet")`.
 - **[code]** Чтение всех файлов wildcard: `yellow_tripdata_*.parquet` (без привязки к конкретному году в wildcard, чтобы код работал с любыми скачанными файлами).
 
@@ -150,7 +150,7 @@ volumes:
 - `.gitignore` содержит `/data/` для исключения датасета из git.
 - `notebooks/03_raw_ingest_and_first_read.ipynb` можно выполнить сверху вниз в поднятом Jupyter-окружении при наличии скачанного data bundle.
 - Ноутбук следует методике курса: `объяснение -> демонстрация -> самостоятельное повторение -> checkpoint`.
-- Ноутбук использует паттерны из Модулей 1-2: `boto3` для MinIO, SparkSession без `.master()`, `setLogLevel("ERROR")`.
+- Ноутбук использует паттерны из Модулей 1-2: `boto3` для MinIO, SparkSession с адресом кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`.
 - Raw-данные остаются в MinIO после выполнения ноутбука (cleanup отсутствует намеренно).
 - При отсутствии data bundle — понятный assert с отсылкой к `START_HERE.md`.
 - `docs/stack_reference.md` обновлён: секция JupyterLab содержит `./data` mount.

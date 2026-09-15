@@ -488,7 +488,7 @@ except Exception as e:
 - `notebooks/08_maintenance_and_final_lab.ipynb` выполняется сверху вниз после прохождения Модуля 6 без внешних зависимостей (DBeaver не обязателен, Модуль 7 рекомендуется, но не обязателен).
 - Ноутбук содержит: демонстрацию проблемы мелких файлов, compaction (`rewrite_data_files`), expire_snapshots, финальную сквозную практику.
 - Методика курса: объяснение → демонстрация → самостоятельное повторение → checkpoint.
-- Паттерны Модулей 1–7: SparkSession без `.master()`, `setLogLevel("ERROR")`, `trino_query()`.
+- Паттерны Модулей 1–7: SparkSession с адресом кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`, `trino_query()`.
 - Демо-таблица `taxi_maintenance_demo` создаётся и удаляется внутри ноутбука.
 - Финальная практика в отдельном namespace `lakehouse.final` с полным cleanup в конце.
 - При отсутствии silver — assert с отсылкой к Модулю 5. При отсутствии raw-данных в MinIO — assert с отсылкой к Модулю 3.

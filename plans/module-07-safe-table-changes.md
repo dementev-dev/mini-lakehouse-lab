@@ -429,7 +429,7 @@ print(f"Демо-таблица пересоздана: {spark.table(DEMO_TABLE)
 - `notebooks/07_safe_table_changes.ipynb` выполняется сверху вниз после прохождения Модуля 6 без внешних зависимостей (DBeaver не обязателен).
 - Ноутбук содержит: демонстрацию schema evolution (`ADD COLUMN` на silver), time travel (`VERSION AS OF`), recovery (`rollback_to_snapshot`), демонстрацию влияния `RENAME COLUMN` на downstream.
 - Методика курса: объяснение -> демонстрация -> самостоятельное повторение -> checkpoint.
-- Паттерны Модулей 1-6: SparkSession без `.master()`, `setLogLevel("ERROR")`, `trino_query()`.
+- Паттерны Модулей 1-6: SparkSession с адресом кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`, `trino_query()`.
 - Schema evolution на silver: только `ADD COLUMN` (безопасная операция). Опасные операции — на демо-таблице.
 - При отсутствии silver — assert с отсылкой к Модулю 5.
 - Текст на русском с параллелями к PostgreSQL/Greenplum.

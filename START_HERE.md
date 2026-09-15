@@ -108,6 +108,8 @@ notebooks/01_environment_and_smoke_test.ipynb
 - `./src` смонтирован read-only как `/opt/src`;
 - `./data` смонтирован read-only как `/opt/data`;
 - `PYTHONPATH=/opt/src`, поэтому helper-скрипты из `src/` доступны для импорта в ноутбуках;
+- новое ядро Jupyter читает `spark/spark-defaults.conf`: из него `SparkSession` получает адрес кластера `spark://spark-master:7077` и настройки Iceberg/MinIO;
+- повторный запуск ячейки с `getOrCreate()` в том же ядре возвращает существующую сессию; чтобы заново применить стартовые настройки, перезапусти ядро;
 - первый ноутбук курса: `01_environment_and_smoke_test.ipynb`;
 - локальный учебный data bundle для Модуля 3 должен быть доступен внутри Jupyter по пути `/opt/data/nyc_taxi`.
 

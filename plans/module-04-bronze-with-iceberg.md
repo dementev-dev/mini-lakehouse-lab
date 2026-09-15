@@ -94,7 +94,7 @@ Bronze нужен Модулю 5. Spark-сессия останавливает�
 | История изменений | Нет (или WAL на уровне СУБД) | Snapshots и manifests (встроены в формат) |
 
 ### Секция 1: Spark-сессия и проверка raw
-- **[code]** SparkSession (паттерн Модулей 2-3: без `.master()`, `setLogLevel("ERROR")`).
+- **[code]** SparkSession (паттерн Модулей 2-3: адрес кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`).
 - **[code]** Быстрая проверка: `spark.read.parquet("s3a://lakehouse/raw/nyc_taxi/yellow_tripdata_*.parquet").count()` + `.printSchema()`. Assert на ненулевой count с отсылкой к Модулю 3.
 - **[md]** Сейчас читаем как набор файлов — нет истории, каталогизации, контроля схемы. Дальше создадим управляемую таблицу.
 
@@ -203,7 +203,7 @@ Bronze нужен Модулю 5. Spark-сессия останавливает�
 
 - `notebooks/04_bronze_with_iceberg.ipynb` можно выполнить сверху вниз в поднятом Jupyter-окружении после прохождения Модуля 3 (raw-данные в MinIO).
 - Ноутбук следует методике курса: `объяснение → демонстрация → самостоятельное повторение → checkpoint`.
-- Ноутбук использует паттерны из Модулей 1-3: SparkSession без `.master()`, `setLogLevel("ERROR")`, `boto3` для MinIO.
+- Ноутбук использует паттерны из Модулей 1-3: SparkSession с адресом кластера из `spark-defaults.conf`, `setLogLevel("ERROR")`, `boto3` для MinIO.
 - Ноутбук идемпотентен: повторное выполнение (`CREATE OR REPLACE`) не дублирует данные и не роняет ячейки.
 - CTAS использует явный список колонок, а не `SELECT *`.
 - Bronze-таблица `lakehouse.bronze.nyc_taxi_yellow` остаётся после выполнения ноутбука для использования в Модуле 5.

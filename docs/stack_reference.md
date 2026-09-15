@@ -54,6 +54,8 @@ docker compose down -v
 - Master UI: `http://localhost:8080`
 - Worker UI: `http://localhost:8081` и `http://localhost:8082`
 - Spark master endpoint внутри сети compose: `spark://spark-master:7077`
+- `spark/spark-defaults.conf` задаёт этот endpoint как `spark.master`; новое ядро Jupyter применяет настройку при создании первой `SparkSession`.
+- `SparkSession.builder.getOrCreate()` в уже работающем ядре возвращает существующую сессию. Для повторного чтения стартовых настроек нужно перезапустить ядро.
 
 Пример запуска smoke-скрипта:
 
@@ -141,7 +143,7 @@ docker compose run --rm iceberg-catalog-init
 | Файл | Что задаёт |
 | --- | --- |
 | `docker-compose.yml` | состав сервисов, порты, volumes, init-контейнеры |
-| `spark/spark-defaults.conf` | Spark catalog `lakehouse`, `s3a`, Iceberg extensions |
+| `spark/spark-defaults.conf` | Spark master, catalog `lakehouse`, `s3a`, Iceberg extensions |
 | `trino/catalog/lakehouse.properties` | каталог Trino `lakehouse`, JDBC и S3-доступ |
 | `spark/Dockerfile` | образ Spark с Iceberg, S3A и Python-зависимостями |
 | `jupyter/Dockerfile` | образ JupyterLab на базе Spark |
