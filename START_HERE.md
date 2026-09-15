@@ -204,6 +204,6 @@ ls -lh data/nyc_taxi/
 
 - пройти `notebooks/01_environment_and_smoke_test.ipynb`;
 - пройти `notebooks/02_lakehouse_mental_model.ipynb`;
-- подготовить data bundle по инструкции выше и пройти `notebooks/03_raw_ingest_and_first_read.ipynb`;
+- подготовить data bundle по инструкции выше и пройти [модуль 3](notebooks/03_raw_ingest_and_first_read.ipynb): сначала настроить Spark-сессию и проверить подключение, затем загрузить и прочитать raw-данные;
 - свериться с программой курса в `docs/course_program.md`;
 - после прохождения первых модулей переходить к следующим учебным материалам.
