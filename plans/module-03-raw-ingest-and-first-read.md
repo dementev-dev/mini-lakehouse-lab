@@ -1,6 +1,6 @@
 # Модуль 3. Raw-данные и первое чтение в Spark
 
-**Статус:** `Ready for review`
+**Статус:** `Done`
 **Последнее обновление:** `2026-09-15`
 
 **Задача:** [#2](https://git.dementev.space/ddmitry/mini-lakehouse-lab/issues/2).

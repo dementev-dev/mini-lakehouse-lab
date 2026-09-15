@@ -1,6 +1,6 @@
 # План развития курса «Lakehouse без магии»
 
-Статус: подключение Spark исправлено; практика настройки сессии по #2 подготовлена и проверена, ожидает ревью.
+Статус: ближайшие доработки завершены; ожидается обратная связь по оставшимся модулям.
 Последнее обновление: 2026-09-15.
 
 Здесь собираем отзывы студентов, выбираем следующие улучшения и объясняем их порядок. Подробные задания, критерии приёмки и актуальный статус исполнения хранятся в [Gitea Issues](https://git.dementev.space/ddmitry/mini-lakehouse-lab/issues).
@@ -36,7 +36,7 @@ Iceberg-таблицы. Результаты проверок и их огран
 
 ### 2. Добавить практику «Как настроен Spark в нашем стенде»
 
-**Статус:** на ревью, [MR #4](https://git.dementev.space/ddmitry/mini-lakehouse-lab/pulls/4).
+**Статус:** выполнено, [MR #4](https://git.dementev.space/ddmitry/mini-lakehouse-lab/pulls/4).
 
 **Задача:** [#2 — практика базовой настройки SparkSession](https://git.dementev.space/ddmitry/mini-lakehouse-lab/issues/2).
 
@@ -68,3 +68,4 @@ Iceberg-таблицы. Результаты проверок и их огран
 ## Выпущенные улучшения
 
 - [#1](https://git.dementev.space/ddmitry/mini-lakehouse-lab/issues/1): все восемь ноутбуков подключаются к Spark-кластеру при создании сессии в новом процессе; настройки собраны в `spark/spark-defaults.conf`.
+- [#2](https://git.dementev.space/ddmitry/mini-lakehouse-lab/issues/2): модуль 3 включает самостоятельное подключение к Spark перед загрузкой и чтением Taxi.
