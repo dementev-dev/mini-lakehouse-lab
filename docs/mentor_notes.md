@@ -72,7 +72,7 @@
 
 - **Студент путает schema evolution и data snapshot.** `ALTER TABLE ADD COLUMNS` не создаёт новый data snapshot — это metadata-only операция. Snapshot создаётся только при изменении данных (INSERT, DELETE и т.д.).
 - **Time travel: забывает сохранить snapshot_id.** Без сохранённого ID в переменную приходится заново запрашивать `table.snapshots`. Привычка: перед экспериментом запиши ID текущего состояния.
-- **`rollback_to_snapshot` vs `CREATE OR REPLACE`.** Ключевое отличие: rollback сохраняет историю, `CREATE OR REPLACE` уничтожает её. Это описано в Секции 10 ноутбука.
+- **`rollback_to_snapshot` vs `CREATE OR REPLACE`.** Rollback переключает текущее состояние на существующий snapshot-предок и не создаёт новый snapshot. `CREATE OR REPLACE` создаёт новый snapshot без родителя и заменяет текущие данные, схему и партиционирование; прежние snapshot-ы сохраняются для time travel, но перестают быть предками текущего состояния. Это описано в Секциях 8 и 10 ноутбука.
 
 ### Модуль 8. Обслуживание и финальная практика
 

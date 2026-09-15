@@ -1,7 +1,7 @@
 # Модуль 8. Базовое обслуживание таблиц и финальная практика
 
 **Статус:** `Ready for validation`
-**Последнее обновление:** `2026-03-08`
+**Последнее обновление:** `2026-09-15`
 
 ## Цель
 
@@ -166,11 +166,12 @@ Greenplum AppendOnly-таблицы имеют аналогичные пробл
 
 - **[md]** Каждый `INSERT INTO` в Iceberg создаёт новые data files. Если вставлять данные мелкими порциями (частые микробатчи, ручные INSERT-ы, инкрементальные загрузки), таблица накапливает множество мелких файлов. Это замедляет чтение: движку приходится открывать и читать каждый файл отдельно. Проблема знакома в мире Hadoop/Hive — и в Iceberg она решается через compaction.
 
-- **[code]** Создание демо-таблицы с 500 строками (CTAS из silver):
+- **[code]** Удаление одноразовой демо-таблицы через `DROP TABLE IF EXISTS ... PURGE`, затем создание с 500 строками (CTAS из silver). Это гарантирует один начальный snapshot и воспроизводимое число snapshot-ов при повторном запуске:
 
 ```python
+spark.sql(f"DROP TABLE IF EXISTS {DEMO_TABLE} PURGE")
 spark.sql(f"""
-    CREATE OR REPLACE TABLE {DEMO_TABLE}
+    CREATE TABLE {DEMO_TABLE}
     USING iceberg AS
     SELECT VendorID, tpep_pickup_datetime, tpep_dropoff_datetime,
            passenger_count, trip_distance, fare_amount, total_amount,
@@ -378,7 +379,7 @@ except Exception as e:
 ### Секция 8: Удаление демо-таблицы
 
 - **[md]** Демо-таблица для обслуживания больше не нужна.
-- **[code]** `spark.sql(f"DROP TABLE IF EXISTS {DEMO_TABLE}")`. Вывод подтверждения.
+- **[code]** `spark.sql(f"DROP TABLE IF EXISTS {DEMO_TABLE} PURGE")`. Вывод подтверждения.
 
 ### Секция 9: Финальная практика — сквозной end-to-end сценарий
 
@@ -467,7 +468,7 @@ except Exception as e:
 - **Исполняемый формат:** Spark SQL для compaction и expire_snapshots (stored procedures). Trino-запросы через Python `trino` клиент для downstream-верификации в финальной практике.
 - **DBeaver-подсказки:** markdown-заметки рядом с Trino-ячейками (паттерн Модуля 6).
 - **Helper-код:** `trino_query(sql)` — переиспользование из Модуля 6. Файловая статистика через metadata-таблицы Iceberg (`.files`, `.snapshots`).
-- **Cleanup:** DROP демо-таблицы `taxi_maintenance_demo`. Финальная практика: DROP таблиц в namespace `final`, DROP namespace. Silver и bronze сохраняются.
+- **Cleanup:** `DROP TABLE ... PURGE` для одноразовой демо-таблицы `taxi_maintenance_demo`. Финальная практика: DROP таблиц в namespace `final`, DROP namespace. Silver и bronze сохраняются.
 - **Порядок:** проблема мелких файлов → compaction → expire_snapshots → Greenplum-параллель → ошибки → самостоятельное задание (обслуживание) → финальная практика (end-to-end) → checkpoint (модуль + курс) → итог курса.
 
 ## Checkpoint
@@ -505,7 +506,7 @@ except Exception as e:
 - **Время выполнения compaction.** `rewrite_data_files` перечитывает и перезаписывает данные. На демо-таблице (~1300 строк) — секунды. На silver (миллионы строк) — потенциально минуты. Предупреждение в markdown.
 - **Финальная практика: путь к raw-данным.** Путь `s3a://lakehouse/raw/nyc_taxi/yellow_tripdata_*.parquet` соответствует маршруту загрузки из Модуля 3. Если студент по какой-то причине загрузил файлы по другому пути, он увидит ошибку при чтении. Добавить подсказку в markdown: «Если путь отличается от указанного, посмотри Модуль 3.»
 - **Финальная практика: объём INSERT-ов.** При LIMIT 5000 для bronze и 3 INSERT по 300 строк в silver — объём данных минимален. Compaction может быть no-op (файлы и так небольшие). Решение: в инструкции явно указать, что цель — увидеть изменение количества файлов и snapshot-ов, а не добиться значимого улучшения производительности.
-- **Идемпотентность.** `CREATE OR REPLACE TABLE` для демо-таблицы — идемпотентна. Финальная практика: если студент запускает повторно, namespace и таблицы могут уже существовать. `CREATE NAMESPACE IF NOT EXISTS` и `CREATE OR REPLACE TABLE` обеспечивают идемпотентность. DROP в конце — `IF EXISTS`.
+- **Повторный запуск.** Перед созданием одноразовой демо-таблицы выполняется `DROP TABLE ... PURGE`, иначе `CREATE OR REPLACE` сохранил бы прежние snapshot-ы и сломал ожидаемое число 9. В финальной практике студент должен учитывать уже существующие namespace и таблицы после прерванного запуска; cleanup в конце выполняется через `IF EXISTS`.
 - **Независимость от Модуля 7.** Ноутбук не должен ссылаться на колонку `loaded_at` или результаты Модуля 7 как на обязательные предусловия. Snapshot-концепции кратко повторяются в контексте expire_snapshots.
 
 ## Out of Scope

@@ -1,7 +1,7 @@
 # Модуль 7. Безопасная работа с таблицами: schema evolution и time travel
 
 **Статус:** `Ready for validation`
-**Последнее обновление:** `2026-03-08`
+**Последнее обновление:** `2026-09-15`
 
 ## Цель
 
@@ -69,9 +69,10 @@
 
 Iceberg предоставляет stored procedure `CALL system.rollback_to_snapshot(table, snapshot_id)`. Это:
 
-- создаёт НОВЫЙ snapshot, указывающий на данные старого — история не теряется;
+- переключает текущее состояние на существующий snapshot-предок и не создаёт новый snapshot;
+- добавляет запись в `.history` о смене текущего состояния, а прежние snapshot-ы остаются доступными;
 - старые data files не удаляются — они остаются до процедуры `expire_snapshots` / vacuum (Модуль 8);
-- семантически аналогично `git revert` (новый коммит, отменяющий изменение), а не `git reset --hard` (удаление истории).
+- отдалённо напоминает перемещение указателя ветки в git, но snapshot-ы Iceberg остаются доступными до явного `expire_snapshots`.
 
 Точный синтаксис stored procedure зависит от версии Iceberg и Spark — нужна проверка на стенде при реализации.
 
@@ -171,11 +172,12 @@ except Exception as e:
 ### Секция 6: Подготовка демо-таблицы с несколькими snapshot-ами
 
 - **[md]** Для экспериментов с time travel и восстановлением создаём отдельную таблицу. Silver не трогаем — он нужен для Модуля 8. Создаём таблицу с небольшим подмножеством silver и наращиваем snapshot-историю через `INSERT INTO`.
-- **[code]** Создание `lakehouse.default.taxi_changes_demo` через CTAS (1000 строк из silver):
+- **[code]** Удаление одноразовой демо-таблицы через `DROP TABLE IF EXISTS ... PURGE`, затем создание `lakehouse.default.taxi_changes_demo` через CTAS (1000 строк из silver). Явное удаление гарантирует один начальный snapshot при повторном запуске:
 
 ```python
+spark.sql("DROP TABLE IF EXISTS lakehouse.default.taxi_changes_demo PURGE")
 spark.sql("""
-    CREATE OR REPLACE TABLE lakehouse.default.taxi_changes_demo
+    CREATE TABLE lakehouse.default.taxi_changes_demo
     USING iceberg AS
     SELECT VendorID, tpep_pickup_datetime, tpep_dropoff_datetime,
            passenger_count, trip_distance, fare_amount, total_amount,
@@ -185,7 +187,7 @@ spark.sql("""
 """)
 ```
 
-- **[code]** Проверка: count = 1000. Snapshot-ы: 1 snapshot (overwrite — от CTAS).
+- **[code]** Проверка: count = 1000. Snapshot-ы: 1 snapshot (`append` от CTAS).
 - **[code]** INSERT ещё 500 строк -> snapshot 2:
 
 ```python
@@ -293,15 +295,17 @@ spark.sql(f"""
 
 #### 8c: Что произошло со snapshot-историей
 
-- **[code]** Snapshot-история: теперь 4 записи. Четвёртый snapshot — rollback, но его данные соответствуют snapshot 2.
-- **[md]** Rollback не удаляет историю и не удаляет файлы. Он создаёт новый snapshot, указывающий на данные предыдущего состояния. Аналогия:
+- **[code]** `.snapshots`: по-прежнему 3 snapshot-а. `.history`: появилась четвёртая запись, снова указывающая на snapshot 2; ошибочный snapshot помечен `is_current_ancestor = false`.
+- **[md]** Rollback не удаляет историю и файлы, но и не создаёт новый snapshot. Он переключает текущее состояние на существующий snapshot-предок. Сравнение:
 
-| | git | Iceberg |
+| Свойство | `rollback_to_snapshot` | `CREATE OR REPLACE TABLE ... AS SELECT` |
 |---|---|---|
-| Откат с сохранением истории | `git revert` (новый коммит) | `rollback_to_snapshot` (новый snapshot) |
-| Откат с удалением истории | `git reset --hard` | `CREATE OR REPLACE` (уничтожает snapshot-ы) |
+| Создаёт новый snapshot | Нет | Да |
+| Что становится текущим | Существующий snapshot-предок | Новый snapshot с результатом `SELECT` |
+| Что происходит со старыми snapshot-ами | Сохраняются | Сохраняются для time travel |
+| Цепочка предков | Возвращаемся к предку | Новый snapshot не имеет `parent_id`; прежние snapshot-ы перестают быть предками текущего |
 
-- **[md]** Старые data files (включая «плохие» строки) остаются в MinIO до процедуры `expire_snapshots` — это тема Модуля 8. Rollback не чистит storage, он только меняет указатель текущего snapshot-а.
+- **[md]** `CREATE OR REPLACE` не создаёт отдельную именованную ветку: текущей остаётся `main`. Старые data files сохраняются до процедуры `expire_snapshots` — это тема Модуля 8.
 
 ### Секция 9: RENAME COLUMN и влияние на downstream
 
@@ -325,7 +329,7 @@ except Exception as e:
 - **[md]** Три ошибки, на которые обращает внимание PRD курса:
 
 **Ошибка 1: Слепой `CREATE OR REPLACE`.**
-В Модулях 4 и 5 мы использовали `CREATE OR REPLACE TABLE ... AS SELECT` для создания bronze и silver. Это был осознанный компромисс: первичная загрузка, нет предыдущей истории, которую нужно сохранять. Но в рабочих сценариях `CREATE OR REPLACE` — деструктивная операция: она уничтожает ВСЮ snapshot-историю таблицы. Если у таблицы было 100 snapshot-ов, после `CREATE OR REPLACE` останется один. Time travel к предыдущим состояниям станет невозможен.
+В Модулях 4 и 5 мы использовали `CREATE OR REPLACE TABLE ... AS SELECT` для воспроизводимой полной загрузки bronze и silver. В `SparkCatalog` операция атомарно создаёт новый snapshot и сохраняет прежние snapshot-ы для time travel. Но она заменяет текущее содержимое, схему и partition spec. Новый snapshot не имеет `parent_id`, поэтому прежние snapshot-ы перестают быть предками текущего состояния. Если нужно перезаписать данные, сохранив текущую схему и партиционирование, следует использовать `INSERT OVERWRITE`.
 
 **Ошибка 2: Изменение схемы без проверки downstream.**
 `RENAME COLUMN` мы только что видели: данные целы, но запросы со старым именем ломаются. `ALTER COLUMN TYPE` (расширение INT -> BIGINT) безопасен для данных, но downstream-системы могут интерпретировать новый тип по-другому. Перед любым изменением схемы нужно понимать, кто читает эту таблицу.
@@ -335,12 +339,13 @@ except Exception as e:
 
 ### Секция 11: Самостоятельное задание
 
-- **[md]** Пересоздаём демо-таблицу с чистого листа. После демонстраций в Секциях 6-9 её схема изменена (RENAME), а snapshot-история содержит наши учебные эксперименты. Для самостоятельной работы нужна чистая таблица — студент сам построит snapshot-историю и выполнит rollback.
-- **[code]** Пересоздание демо-таблицы (тот же CTAS, что в Секции 6):
+- **[md]** Готовим демо-таблицу с чистого листа. После демонстраций в Секциях 6-9 её схема изменена (RENAME), а snapshot-история содержит учебные эксперименты. Поскольку `CREATE OR REPLACE` сохраняет snapshot-ы, одноразовую таблицу удаляем через `PURGE` и создаём заново.
+- **[code]** Сброс и новое создание демо-таблицы (тот же CTAS, что в Секции 6):
 
 ```python
+spark.sql(f"DROP TABLE IF EXISTS {DEMO_TABLE} PURGE")
 spark.sql("""
-    CREATE OR REPLACE TABLE lakehouse.default.taxi_changes_demo
+    CREATE TABLE lakehouse.default.taxi_changes_demo
     USING iceberg AS
     SELECT VendorID, tpep_pickup_datetime, tpep_dropoff_datetime,
            passenger_count, trip_distance, fare_amount, total_amount,
@@ -361,7 +366,7 @@ print(f"Демо-таблица пересоздана: {spark.table(DEMO_TABLE)
 
   **Задача 4 (recovery).** INSERT 100 строк с `fare_amount = -1` и `pickup_zone = 'STUDENT_ERROR'` в демо-таблицу. Убедись, что «плохие» строки появились (`SELECT count(*) WHERE fare_amount < 0`). Затем выполни `rollback_to_snapshot` к snapshot-у ДО этого INSERT-а. Проверь, что таблица восстановлена: `fare_amount < 0` -> 0 строк, общий count вернулся к предыдущему значению.
 
-  **Задача 5 (ответ).** Ответь в markdown-ячейке: чем `rollback_to_snapshot` отличается от `CREATE OR REPLACE TABLE ... AS SELECT * FROM table VERSION AS OF <snapshot_id>`? Что происходит с историей snapshot-ов в каждом случае?
+  **Задача 5 (ответ).** Сравни `rollback_to_snapshot` и `CREATE OR REPLACE TABLE ... AS SELECT * FROM table VERSION AS OF <snapshot_id>`: какая операция создаёт новый snapshot, что становится текущим и как меняется цепочка `parent_id`?
 
 - **[code]** Пустая ячейка: `# Ваш код: ALTER TABLE ADD COLUMNS (quality_flag)`
 - **[code]** Пустая ячейка: `# Ваш код: проверка из Spark и Trino`
@@ -390,7 +395,7 @@ print(f"Демо-таблица пересоздана: {spark.table(DEMO_TABLE)
 ### Секция 13: Завершение
 
 - **[md]** Удаляем демо-таблицу — она больше не нужна. Silver остаётся для Модуля 8 (колонка `loaded_at` — демонстрационная; Модуль 8 не зависит от её наличия).
-- **[code]** `spark.sql("DROP TABLE IF EXISTS lakehouse.default.taxi_changes_demo")`.
+- **[code]** `spark.sql("DROP TABLE IF EXISTS lakehouse.default.taxi_changes_demo PURGE")`.
 - **[md]** Итог модуля:
   - Schema evolution (ADD COLUMN) — безопасная metadata-only операция, видна из всех движков.
   - Snapshot-ы — автоматическая история изменений данных, встроенная в Iceberg.
@@ -433,13 +438,14 @@ print(f"Демо-таблица пересоздана: {spark.table(DEMO_TABLE)
 
 ## Риски
 
-- **`rollback_to_snapshot` синтаксис.** Точный синтаксис stored procedure зависит от версии Iceberg и Spark. Варианты: именованные параметры (`table => '...', snapshot_id => ...`), позиционные (`'table', snapshot_id`). Нужна проверка на стенде. Fallback: `CREATE OR REPLACE TABLE ... AS SELECT * FROM table VERSION AS OF <snapshot_id>` (менее элегантно, уничтожает snapshot-историю, но работает).
+- **`rollback_to_snapshot` синтаксис.** Именованные параметры (`table => '...', snapshot_id => ...`) проверены на Spark 3.5.1 и Iceberg 1.10.0. `CREATE OR REPLACE TABLE ... AS SELECT * FROM table VERSION AS OF <snapshot_id>` не является эквивалентом rollback: он переписывает данные в новый snapshot без родителя и может заменить схему и partition spec.
 - **`ALTER TABLE ADD COLUMNS` vs `ADD COLUMN`.** В Spark SQL с Iceberg синтаксис — `ADD COLUMNS` (множественное число). Проверить на стенде.
-- **Количество snapshot-ов silver.** Если студент перезапускал Модуль 5 через `CREATE OR REPLACE`, у silver может быть только 1 snapshot. Это нормально — `ADD COLUMN` не создаёт snapshot, но демо-таблица наращивает snapshot-историю через INSERT.
-- **Time travel через Trino.** Синтаксис `FOR VERSION AS OF` может отличаться в зависимости от версии Trino. Проверить на стенде.
+- **Количество snapshot-ов silver.** После первого запуска Модуля 5 у silver будет 1 snapshot; каждый повторный `CREATE OR REPLACE` добавляет новый, сохраняя старые для time travel. `ADD COLUMN` не создаёт data snapshot, а демо-таблица наращивает snapshot-историю через INSERT.
+- **Time travel через Trino.** Синтаксис `FOR VERSION AS OF <snapshot_id>` проверен на Trino 478 с общим JDBC-каталогом и MinIO.
 - **Floating-point в snapshot_id.** Snapshot ID — длинное число (long). При передаче в f-string и SQL нужно убедиться, что Python не конвертирует его в float. Использовать `int(snapshot_id)`.
 - **RENAME COLUMN ошибка в Trino.** Trino-запрос со старым именем колонки должен упасть с ошибкой. Обернуть в try/except с пояснением в markdown.
-- **Идемпотентность.** Повторный запуск ноутбука: `ALTER TABLE ADD COLUMNS (loaded_at TIMESTAMP)` упадёт, если колонка уже существует. Решение зафиксировано: обернуть в try/except с проверкой `"already exists"` в тексте ошибки (см. Секцию 3). Это переносимый подход, не зависящий от поддержки `IF NOT EXISTS` конкретной версией Iceberg. Демо-таблица пересоздаётся через `CREATE OR REPLACE` — идемпотентна.
+- **Повторный запуск.** `ALTER TABLE ADD COLUMNS (loaded_at TIMESTAMP)` упадёт, если колонка уже существует. Решение зафиксировано: обернуть в try/except с проверкой `"already exists"` в тексте ошибки (см. Секцию 3). Одноразовая демо-таблица перед каждой исходной CTAS удаляется через `DROP TABLE ... PURGE`, чтобы проверки числа snapshot-ов были воспроизводимы.
+- **Сброс демо-таблицы.** Два последовательных цикла `DROP TABLE ... PURGE` + `CREATE TABLE ... AS SELECT` проверены на стенде: каждый цикл начинает историю ровно с одного snapshot-а.
 - **Влияние на Модуль 8.** Колонка `loaded_at` — демонстрационная. Модуль 8 не должен от неё зависеть. Если студент перезапустит Модуль 5 после Модуля 7, silver будет без `loaded_at` — Модуль 8 должен работать в обоих случаях.
 
 ## Out of Scope
