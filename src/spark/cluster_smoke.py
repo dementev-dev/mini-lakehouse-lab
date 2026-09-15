@@ -2,30 +2,29 @@ from __future__ import annotations
 
 from pyspark.sql import SparkSession
 
-DEFAULT_MASTER_URL = "spark://spark-master:7077"
+EXPECTED_MASTER_URL = "spark://spark-master:7077"
 DEFAULT_APP_NAME = "cluster-smoke"
 DEFAULT_ROW_COUNT = 1_000_000
 
 
 def create_spark_session(
     app_name: str = DEFAULT_APP_NAME,
-    master_url: str = DEFAULT_MASTER_URL,
 ) -> SparkSession:
     """Создать SparkSession для проверок окружения в Модуле 1.
 
-    Функция специально остаётся минимальной и опирается на смонтированный
-    в контейнер `spark-defaults.conf` для остальной Spark/Iceberg-конфигурации.
+    Адрес кластера и настройки Iceberg и MinIO заданы в spark-defaults.conf.
     """
-    return SparkSession.builder.appName(app_name).master(master_url).getOrCreate()
+    return SparkSession.builder.appName(app_name).getOrCreate()
 
 
 def run_cluster_smoke(spark: SparkSession, row_count: int = DEFAULT_ROW_COUNT) -> dict:
     spark_context = spark.sparkContext
     master_url = spark_context.master
 
-    if master_url.startswith("local"):
+    if master_url != EXPECTED_MASTER_URL:
         raise RuntimeError(
-            "Smoke test must run against the Spark cluster, not local mode."
+            "Smoke test must run against "
+            f"{EXPECTED_MASTER_URL}, got {master_url}."
         )
 
     # Берём больше партиций, чем даёт defaultParallelism, чтобы задача точно
