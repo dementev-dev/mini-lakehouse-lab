@@ -56,9 +56,8 @@ graph TB
 | `Trino` | Compute — ad hoc SQL, чтение тех же таблиц |
 | `JupyterLab` | Точка входа — практические ноутбуки курса |
 
-Ноутбуки создают `SparkSession` с именем приложения, а подключение к
-`spark://spark-master:7077` и общие настройки Iceberg/MinIO получают из
-`spark/spark-defaults.conf`.
+Ноутбуки подключаются к Spark-кластеру с
+[готовыми настройками стенда](./docs/stack_reference.md#spark).
 
 ## С чего начать
 

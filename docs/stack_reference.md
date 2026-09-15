@@ -53,9 +53,16 @@ docker compose down -v
 
 - Master UI: `http://localhost:8080`
 - Worker UI: `http://localhost:8081` и `http://localhost:8082`
-- Spark master endpoint внутри сети compose: `spark://spark-master:7077`
-- `spark/spark-defaults.conf` задаёт этот endpoint как `spark.master`; новое ядро Jupyter применяет настройку при создании первой `SparkSession`.
-- `SparkSession.builder.getOrCreate()` в уже работающем ядре возвращает существующую сессию. Для повторного чтения стартовых настроек нужно перезапустить ядро.
+- Адрес Spark master внутри сети Docker Compose: `spark://spark-master:7077`
+
+Адрес кластера (`spark.master`) и настройки доступа к Iceberg и MinIO заданы в
+[`spark/spark-defaults.conf`](../spark/spark-defaults.conf). Docker подключает этот
+файл к контейнеру Jupyter как `/opt/spark/conf/spark-defaults.conf`.
+
+При первом вызове `getOrCreate()` Spark читает настройки и создает сессию.
+Повторный вызов использует уже работающую сессию. Если изменил адрес кластера
+или настройки в файле, перезапусти ядро ноутбука и снова выполни ячейки
+с импортами и созданием сессии.
 
 Пример запуска smoke-скрипта:
 

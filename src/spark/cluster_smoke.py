@@ -12,8 +12,7 @@ def create_spark_session(
 ) -> SparkSession:
     """Создать SparkSession для проверок окружения в Модуле 1.
 
-    Функция специально остаётся минимальной и опирается на смонтированный
-    в контейнер `spark-defaults.conf` для Spark/Iceberg-конфигурации.
+    Адрес кластера и настройки Iceberg и MinIO заданы в spark-defaults.conf.
     """
     return SparkSession.builder.appName(app_name).getOrCreate()
 
