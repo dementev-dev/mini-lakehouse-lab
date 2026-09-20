@@ -221,7 +221,11 @@ SELECT * FROM <table>.files;
 
 -- Обслуживание (Модуль 8)
 CALL lakehouse.system.rewrite_data_files(table => '<namespace>.<table>');
-CALL lakehouse.system.expire_snapshots(table => '<namespace>.<table>', retain_last => N);
+CALL lakehouse.system.expire_snapshots(
+    table => '<namespace>.<table>',
+    older_than => TIMESTAMP '<cutoff>',
+    retain_last => N
+);
 
 -- Rollback (Модуль 7)
 CALL lakehouse.system.rollback_to_snapshot(table => '<namespace>.<table>', snapshot_id => <id>);
@@ -229,6 +233,8 @@ CALL lakehouse.system.rollback_to_snapshot(table => '<namespace>.<table>', snaps
 -- Time travel (Модуль 7)
 SELECT * FROM <table> VERSION AS OF <snapshot_id>;
 ```
+
+Для `expire_snapshots` подставь в `<cutoff>` границу хранения истории в часовом поясе Spark-сессии. `retain_last` сохраняет минимум N последних snapshot-ов в цепочке предков текущего состояния, а не ограничивает всю историю числом N. Получение границы времени для учебного примера показано в [Модуле 8, Секции 4](../notebooks/08_maintenance_and_final_lab.ipynb).
 
 ### Часто используемые Trino SQL
 

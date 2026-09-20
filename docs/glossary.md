@@ -128,9 +128,9 @@ Avro-файл со списком manifest-ов, составляющих оди
 
 ### Vacuum (expire_snapshots)
 
-Удаление старых snapshot-ов и связанных с ними data files из хранилища. Освобождает место, но делает невозможным time travel к удалённым snapshot-ам. Необратимая операция.
+Удаление старых snapshot-ов и файлов, которые больше не нужны ни одному сохранённому snapshot-у. Может освободить место, но делает невозможным time travel к удалённым snapshot-ам. Необратимая операция.
 
-**В этом курсе:** `CALL lakehouse.system.expire_snapshots(table => '...', retain_last => N)`.
+**В этом курсе:** `CALL lakehouse.system.expire_snapshots(table => '...', older_than => TIMESTAMP '<cutoff>', retain_last => N)`. `older_than` задаёт границу времени, а `retain_last` защищает последние N snapshot-ов в цепочке предков текущего состояния независимо от возраста. Без явной границы при стандартных настройках удаляются только snapshot-ы старше 5 дней; один `retain_last` не сокращает историю до N записей.
 **Параллель с DWH:** `VACUUM` в PostgreSQL/Greenplum (удаление мёртвых строк).
 **Где в курсе:** Модуль 8.
 
