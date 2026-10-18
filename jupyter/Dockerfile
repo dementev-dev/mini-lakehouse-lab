@@ -1,5 +1,5 @@
 # Берем за основу контейнер, приготовленный для spark в spark/Dockerfile
-FROM de-spark-iceberg:3.5.1
+FROM spark-runtime
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive

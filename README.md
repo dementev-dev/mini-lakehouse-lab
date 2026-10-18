@@ -24,7 +24,7 @@ graph TB
     U[Student / engineer]
 
     subgraph Access
-        J[JupyterLab<br/>notebooks / PySpark]
+        J[VS Code в браузере<br/>Jupyter notebooks / PySpark]
         Q[Trino UI / CLI<br/>ad hoc SQL]
     end
 
@@ -54,7 +54,8 @@ graph TB
 | `PostgreSQL` | Catalog — метаданные JDBC-каталога `lakehouse` |
 | `Spark` | Compute — ETL, запись и чтение Iceberg-таблиц |
 | `Trino` | Compute — ad hoc SQL, чтение тех же таблиц |
-| `JupyterLab` | Точка входа — практические ноутбуки курса |
+| `code-server` | VS Code в браузере — ноутбуки курса, Python и терминал внутри Docker |
+| `JupyterLab` | Запасной интерфейс для тех же ноутбуков |
 
 Ноутбуки подключаются к Spark-кластеру с
 [готовыми настройками стенда](./docs/stack_reference.md#spark).
@@ -73,18 +74,22 @@ docker compose up -d
 docker compose ps
 ```
 
-Зафиксированные исторические образы MinIO загружаются из официального Quay registry; подробности — в [техническом reference](./docs/stack_reference.md#minio).
+MinIO собирается из закреплённых официальных исходников; первая сборка занимает
+несколько дополнительных минут. Подробности — в [техническом reference](./docs/stack_reference.md#minio).
 
 После старта:
 
 | UI | Адрес |
 | --- | --- |
-| JupyterLab | `http://localhost:8888` |
+| VS Code в браузере | `http://localhost:8889` |
+| JupyterLab (запасной интерфейс) | `http://localhost:8888` |
 | Spark Master | `http://localhost:8080` |
 | Trino | `http://localhost:8090` |
 | MinIO Console | `http://localhost:9001` |
 
-JupyterLab опубликован только на loopback-интерфейсе хоста и рассчитан на локальный одно-пользовательский стенд. Подключение через VS Code Remote-SSH описано в [START_HERE.md](./START_HERE.md#как-работать-в-jupyter).
+Открой ноутбук в браузерном VS Code и выбери Python внутри контейнера: локальный
+Python и venv не нужны. Оба интерфейса доступны только с хоста стенда.
+Первый запуск ноутбука описан в [START_HERE.md](./START_HERE.md#как-работать-с-ноутбуками).
 
 ## Документы для прохождения
 

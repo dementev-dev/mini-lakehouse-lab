@@ -15,7 +15,8 @@
 | MinIO API | `minio` | `9000` | S3-compatible endpoint |
 | MinIO Console | `minio` | `9001` | веб-консоль бакетов и объектов |
 | PostgreSQL | `postgres-iceberg` | `5432` | JDBC-каталог Iceberg |
-| JupyterLab | `jupyter` | `8888` | практические ноутбуки |
+| VS Code в браузере (code-server) | `ide` | `8889` | основной интерфейс для ноутбуков и терминала |
+| JupyterLab | `jupyter` | `8888` | запасной интерфейс для тех же ноутбуков |
 
 ## Основные команды
 
@@ -36,6 +37,7 @@ docker compose logs -f spark-master
 docker compose logs -f trino
 docker compose logs -f minio
 docker compose logs -f jupyter
+docker compose logs -f ide
 ```
 
 ### Остановка и reset
@@ -72,8 +74,7 @@ docker compose down -v
 Пример запуска smoke-скрипта:
 
 ```bash
-docker compose exec spark-master \
-  /opt/spark/bin/spark-submit /opt/src/spark/cluster_smoke.py
+docker compose exec ide python3 /opt/src/spark/cluster_smoke.py
 ```
 
 ### Trino
@@ -106,7 +107,13 @@ SHOW TABLES FROM lakehouse.default;
 - логин: `minioadmin`
 - пароль: `minioadmin`
 
-Стенд использует зафиксированные исторические образы MinIO Server и `mc` из официального namespace `quay.io/minio`. Эти версии подходят для локального курса, но больше не получают обновлений upstream и не предназначены для production.
+Стенд собирает MinIO Server `RELEASE.2024-10-02T17-50-41Z` и `mc`
+`RELEASE.2024-06-24T19-40-33Z` из официальных исходников. Коммиты и SHA-256 архивов
+зафиксированы в `minio/Dockerfile`. Готовые образы этих версий в Docker Hub и Quay
+больше не загружаются; бинарный архив `dl.min.io` также недоступен.
+Первая сборка компилирует Go-код и занимает несколько дополнительных минут.
+Версии сохранены ради совместимости с курсом и его MinIO Console; они больше
+не получают обновлений upstream и не предназначены для production.
 
 Бакет `lakehouse` обычно создаётся автоматически контейнером `minio-init`.
 
@@ -126,6 +133,44 @@ psql -h localhost -p 5432 -U iceberg -d iceberg
 docker compose run --rm iceberg-catalog-init
 ```
 
+### VS Code в браузере
+
+Открой `http://localhost:8889`. Сервис `ide` запускает code-server с установленными
+расширениями Python и Jupyter. Python, ipykernel, Java, PySpark и зависимости курса
+уже находятся в образе. Локальный Python или venv не нужен.
+
+В рабочей области доступны ноутбуки, примеры из `src/` и документация. Репозиторий
+смонтирован в `/opt/course` только для чтения, а его каталог `notebooks/` — для
+чтения и записи. Так относительные ссылки между документами и ноутбуками работают
+и внутри IDE. Пути `/opt/work`, `/opt/src`, `/opt/data` также доступны примерам курса.
+Открой
+`01_environment_and_smoke_test.ipynb`, нажми **Select Kernel → Python Environments**
+и выбери `/usr/bin/python3`. Это Python внутри контейнера IDE. Расширение Jupyter
+запускает ядро там же; адрес отдельного Jupyter Server вводить не требуется.
+
+Порт IDE опубликован только на `127.0.0.1`, без пароля, для одного пользователя.
+Открывай именно `localhost` или `127.0.0.1`: браузер считает их доверенным
+контекстом даже по HTTP. Notebook webview использует service worker; при обращении
+по обычному HTTP к IP сервера или имени в локальной сети этот механизм может
+быть недоступен. Это ограничение secure context, отдельное от CORS и XSRF.
+См. [secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)
+и [webviews в code-server](https://coder.com/docs/code-server/FAQ#why-do-web-views-not-work).
+
+Для стенда на удалённой машине используй SSH-туннель:
+
+```bash
+ssh -N -L 8889:127.0.0.1:8889 user@host
+```
+
+Затем открой `http://localhost:8889` на своём компьютере. Прямой доступ по
+публичному адресу не входит в эту конфигурацию.
+
+Образы собираются в порядке `spark-master → jupyter → ide` через Compose
+`additional_contexts` (нужен Docker Compose 2.17+ и BuildKit). Версии code-server
+и расширений зафиксированы в `ide/Dockerfile`; расширения скачиваются при сборке.
+Автоматическое обновление расширений отключено, чтобы повторный запуск использовал
+проверенные версии.
+
 ### JupyterLab
 
 - адрес: `http://localhost:8888`
@@ -136,6 +181,10 @@ docker compose run --rm iceberg-catalog-init
 - `./src` смонтирован read-only как `/opt/src`
 - `./data` смонтирован read-only как `/opt/data`
 - `PYTHONPATH=/opt/src`
+
+JupyterLab остаётся запасным интерфейсом. Он редактирует те же файлы, но запускает
+отдельные ядра: переменные Python между IDE и JupyterLab не общие. Перед сменой
+интерфейса сохрани ноутбук и останови его ядро.
 
 Первый ноутбук курса: `notebooks/01_environment_and_smoke_test.ipynb`.
 
@@ -159,14 +208,32 @@ docker compose run --rm iceberg-catalog-init
 | `trino/catalog/lakehouse.properties` | каталог Trino `lakehouse`, JDBC и S3-доступ |
 | `spark/Dockerfile` | образ Spark с Iceberg, S3A и Python-зависимостями |
 | `jupyter/Dockerfile` | образ JupyterLab на базе Spark |
+| `ide/Dockerfile` | code-server и расширения на базе образа Jupyter |
+| `ide/lakehouse.code-workspace` | папки рабочей области и настройки Python |
+| `minio/Dockerfile` | сборка закреплённых исходников MinIO Server и `mc` |
 
 ## Smoke-тесты
+
+### Браузерная IDE и Jupyter-ноутбук
+
+На Linux с Docker Engine, после запуска стенда:
+
+```bash
+bash tests/browser_ide.sh
+```
+
+Проверка запускает Chromium в отдельном контейнере и проходит путь студента:
+доверие рабочей области → открытие копии Модуля 1 → выбор Python → Run All →
+вывод Spark в webview → сохранение → повторное открытие. Затем проверяет, что
+все кодовые ячейки выполнились без ошибок и результат сохранился. Исходный
+ноутбук не меняется. Скриншот остаётся в каталоге `/tmp/lakehouse-browser-check.*`,
+путь печатается перед запуском. Docker Desktop этим скриптом не проверяется:
+он использует Linux host networking.
 
 ### 1. Проверка, что Spark-кластер жив
 
 ```bash
-docker compose exec spark-master \
-  /opt/spark/bin/spark-submit /opt/src/spark/cluster_smoke.py
+docker compose exec ide python3 /opt/src/spark/cluster_smoke.py
 ```
 
 ### 2. Проверка Spark -> Trino через общий каталог

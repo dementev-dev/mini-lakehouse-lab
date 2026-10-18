@@ -121,7 +121,9 @@ services:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-10-02T17-50-41Z
+    build:
+      context: ./minio
+      target: minio
     container_name: minio
     hostname: minio
     networks:
@@ -137,7 +139,9 @@ services:
       - minio-data:/data
 
   minio-init:
-    image: quay.io/minio/mc:RELEASE.2024-06-24T19-40-33Z-cpuv1
+    build:
+      context: ./minio
+      target: mc
     container_name: minio-init
     hostname: minio-init
     networks:
@@ -160,6 +164,8 @@ services:
   jupyter:
     build:
       context: ./jupyter
+      additional_contexts:
+        spark-runtime: service:spark-master
       args:
         NB_UID: ${NB_UID:-1000}
         NB_GID: ${NB_GID:-100}
@@ -191,6 +197,38 @@ services:
       - ./notebooks:/opt/work
       - ./src:/opt/src:ro
       - ./data:/opt/data:ro
+
+  ide:
+    build:
+      context: ./ide
+      additional_contexts:
+        jupyter-runtime: service:jupyter
+    container_name: ide
+    hostname: ide
+    depends_on:
+      - spark-master
+      - minio
+      - iceberg-catalog-init
+    networks:
+      - spark-net
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - PYTHONPATH=/opt/src
+    ports:
+      - "127.0.0.1:8889:8889"
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./notebooks:/opt/work
+      - ./src:/opt/src:ro
+      - ./data:/opt/data:ro
+      - .:/opt/course:ro
+      - ./notebooks:/opt/course/notebooks
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8889/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   trino:
     image: trinodb/trino:478

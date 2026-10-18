@@ -1,0 +1,10 @@
+{
+  "folders": [
+    { "name": "Ноутбуки", "path": "/opt/course/notebooks" },
+    { "name": "Примеры (только чтение)", "path": "/opt/course/src" },
+    { "name": "Документация (только чтение)", "path": "/opt/course/docs" }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "/usr/bin/python3"
+  }
+}

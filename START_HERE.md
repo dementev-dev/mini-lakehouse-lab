@@ -8,7 +8,7 @@
 2. Собрать и поднять стенд.
 3. Убедиться, что контейнеры живы.
 4. Открыть основные UI.
-5. Зайти в Jupyter и выполнить `notebooks/01_environment_and_smoke_test.ipynb`.
+5. Открыть VS Code в браузере и выполнить `notebooks/01_environment_and_smoke_test.ipynb`.
 6. Перед Модулем 3 подготовить учебный датасет в `./data/nyc_taxi`.
 7. При проблемах использовать логи и шаги диагностики из этого документа.
 
@@ -17,15 +17,18 @@
 Нужно заранее установить:
 
 - Docker;
-- Docker Compose;
+- Docker Compose 2.17+ с BuildKit (`docker compose version`);
 - современный браузер для UI;
 - свободные порты на хосте.
 
 Рекомендуемые ресурсы хоста:
 
 - не менее `4 vCPU`;
-- не менее `10 GB RAM`, иначе `Spark`, `Trino` и `Jupyter` могут стартовать нестабильно;
-- хотя бы `8-10 GB` свободного места под образы и контейнеры.
+- не менее `10 GB RAM`, иначе `Spark`, `Trino` и IDE могут стартовать нестабильно;
+- хотя бы `20 GB` свободного места под образы, кэш первой сборки и контейнеры.
+
+Python, Java, Jupyter и расширения VS Code устанавливаются при сборке Docker-образов.
+На хосте не нужно создавать venv или устанавливать Python-пакеты.
 
 ## Порты стенда
 
@@ -37,12 +40,22 @@
 | Trino UI | `http://localhost:8090` | Проверка координатора Trino |
 | MinIO API | `http://localhost:9000` | S3-compatible endpoint |
 | MinIO Console | `http://localhost:9001` | Просмотр бакетов и файлов |
-| JupyterLab | `http://localhost:8888` | Основная точка входа в практику |
+| VS Code в браузере | `http://localhost:8889` | Основная точка входа в практику |
+| JupyterLab | `http://localhost:8888` | Запасной интерфейс для ноутбуков |
 | PostgreSQL | `localhost:5432` | JDBC-каталог Iceberg, нужен для диагностики |
 
 ## Быстрый запуск
 
 Все команды выполняются из корня репозитория.
+
+На Linux пользователь контейнера должен иметь доступ к файлам ноутбуков. Если
+твой UID отличается от `1000`, перед сборкой задай его в текущем терминале:
+
+```bash
+export NB_UID=$(id -u) NB_GID=$(id -g)
+```
+
+Для Docker Desktop на macOS и Windows обычно подходят значения по умолчанию.
 
 ### 1. Собрать образы
 
@@ -50,7 +63,8 @@
 docker compose build
 ```
 
-Зафиксированные образы MinIO загружаются из `quay.io`; их версии и назначение описаны в [техническом reference](./docs/stack_reference.md#minio).
+Первая сборка скачивает зависимости и компилирует MinIO из закреплённых исходников.
+На это может уйти несколько минут. Версии описаны в [техническом reference](./docs/stack_reference.md#minio).
 
 ### 2. Поднять стенд
 
@@ -66,7 +80,7 @@ docker compose ps
 
 Ожидаемое состояние:
 
-- сервисы `spark-master`, `spark-worker-1`, `spark-worker-2`, `minio`, `postgres-iceberg`, `trino`, `jupyter` находятся в состоянии `Up`;
+- контейнеры `spark-master`, `spark-worker-1`, `spark-worker-2`, `minio`, `postgres-iceberg`, `trino`, `jupyter`, `ide` находятся в состоянии `Up`, у `ide` появляется статус `healthy`;
 - однократные init-контейнеры вроде `minio-init` и `iceberg-catalog-init` могут завершиться после успешной инициализации.
 
 ## Куда заходить после старта
@@ -76,14 +90,14 @@ docker compose ps
 - `http://localhost:8080` для `Spark Master UI`;
 - `http://localhost:8090` для `Trino UI`;
 - `http://localhost:9001` для `MinIO Console`;
-- `http://localhost:8888` для `JupyterLab`.
+- `http://localhost:8889` для `VS Code в браузере`.
 
 Для входа в `MinIO Console` используй:
 
 - логин: `minioadmin`;
 - пароль: `minioadmin`.
 
-Если интерфейсы открываются, переходи в Jupyter и запускай:
+Если интерфейсы открываются, переходи в VS Code и запускай:
 
 ```text
 notebooks/01_environment_and_smoke_test.ipynb
@@ -97,19 +111,38 @@ notebooks/01_environment_and_smoke_test.ipynb
 | `PostgreSQL` | `catalog`: хранит метаданные JDBC-каталога Iceberg |
 | `Spark` | `compute`: выполняет PySpark и Spark SQL задания |
 | `Trino` | `compute`: читает те же таблицы через общий каталог |
-| `Jupyter` | Точка входа в учебные ноутбуки |
+| `VS Code / JupyterLab` | Интерфейсы для учебных ноутбуков |
 
-## Как работать в Jupyter
+## Как работать с ноутбуками
 
-- JupyterLab доступен без логина только с хоста, на котором запущен стенд;
-- при работе через VS Code Remote-SSH выбери `Existing Jupyter Server` и укажи `http://127.0.0.1:8888/`;
-- token в адрес добавлять не нужно: аутентификация и XSRF-проверка отключены для локального одно-пользовательского сценария;
+1. Открой `http://localhost:8889` в отдельной вкладке браузера.
+2. Если сверху виден **Restricted Mode**, нажми **Manage → Trust** и закрой окно
+   Workspace Trust. Подтверди доверие только к своей копии этого учебного
+   репозитория: в Restricted Mode запуск ноутбуков ограничен.
+3. В папке **Ноутбуки** открой `01_environment_and_smoke_test.ipynb`.
+4. Нажми **Select Kernel → Python Environments** и выбери Python с путём
+   `/usr/bin/python3`. Он находится внутри контейнера `ide`, где уже есть
+   зависимости курса. Пункт **Existing Jupyter Server** здесь не нужен.
+5. Запусти первую кодовую ячейку кнопкой слева или `Shift+Enter`, затем остальные
+   ячейки по порядку. Результат появится под ячейкой. Сохрани ноутбук через `Ctrl+S`.
+
+Терминал VS Code тоже работает внутри контейнера. Команды `docker compose`
+выполняй в терминале хоста, откуда запускал стенд.
+
+Файлы доступны в IDE так:
+
 - `./notebooks` смонтирован в контейнер как `/opt/work`;
 - `./src` смонтирован read-only как `/opt/src`;
+- весь репозиторий доступен read-only в `/opt/course`; его папка `notebooks/`
+  доступна для записи, поэтому правки из IDE сохраняются на хосте;
 - `./data` смонтирован read-only как `/opt/data`;
 - `PYTHONPATH=/opt/src`, поэтому helper-скрипты из `src/` доступны для импорта в ноутбуках;
-- первый ноутбук курса: `01_environment_and_smoke_test.ipynb`;
-- локальный учебный data bundle для Модуля 3 должен быть доступен внутри Jupyter по пути `/opt/data/nyc_taxi`.
+- учебный data bundle для Модуля 3 доступен по пути `/opt/data/nyc_taxi`.
+
+Запасной интерфейс — JupyterLab на `http://localhost:8888`. Файлы ноутбуков общие,
+а ядра и переменные Python отдельные. Перед переходом сохрани ноутбук и останови
+его ядро. Подключение с удалённой машины описано в
+[техническом reference](./docs/stack_reference.md#vs-code-в-браузере).
 
 Ноутбуки берут адрес кластера из
 [`spark/spark-defaults.conf`](./spark/spark-defaults.conf). Если изменил его,
@@ -132,6 +165,7 @@ docker compose logs -f spark-master
 docker compose logs -f trino
 docker compose logs -f minio
 docker compose logs -f jupyter
+docker compose logs -f ide
 ```
 
 ### Типовые первые проверки
@@ -139,6 +173,12 @@ docker compose logs -f jupyter
 - `Spark UI` не открывается: проверь `docker compose ps` и логи `spark-master`.
 - `Trino UI` не открывается: проверь `docker compose ps` и логи `trino`.
 - `JupyterLab` не открывается: проверь `docker compose ps` и логи `jupyter`.
+- VS Code не открывается: проверь `docker compose ps ide` и логи `ide`.
+- Вместо ноутбука ошибка webview/service worker: открой `http://localhost:8889`
+  в отдельной вкладке, без IP сервера и без встраивания в другой сайт.
+- Ядро не выбирается: убедись, что рабочая область доверенная, и выбери
+  `/usr/bin/python3` в **Python Environments**. Для подробностей открой
+  **View → Output → Jupyter**.
 - `MinIO Console` не открывается: проверь `docker compose ps` и логи `minio`.
 - smoke test падает из ноутбука: сначала убедись, что `spark-master` и worker-ы видны в `Spark UI`.
 
