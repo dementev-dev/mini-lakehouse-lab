@@ -51,7 +51,9 @@ async function checkOutput(page) {
     }
   });
   try {
-    await page.goto('http://localhost:8889', { waitUntil: 'domcontentloaded' });
+    await page.goto(process.env.IDE_URL || 'http://localhost:8889', {
+      waitUntil: 'domcontentloaded',
+    });
     assert(await page.evaluate(() => isSecureContext && 'serviceWorker' in navigator));
     await page.getByRole('tree', { name: 'Files Explorer' }).waitFor();
     // Баннер появляется позже Explorer; при повторном тесте доверие уже сохранено.

@@ -121,9 +121,8 @@ services:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
   minio:
-    build:
-      context: ./minio
-      target: minio
+    # Один и тот же образ опубликован автором в GHCR и Docker Hub.
+    image: &minio-image ${MINIO_REGISTRY:-ghcr.io}/coollabsio/minio:RELEASE.2025-04-22T22-12-26Z@sha256:a4938f37f1be1841b8e7b627ad0207b265345fd0d063e42d7410c78af0e63e68
     container_name: minio
     hostname: minio
     networks:
@@ -139,9 +138,7 @@ services:
       - minio-data:/data
 
   minio-init:
-    build:
-      context: ./minio
-      target: mc
+    image: *minio-image
     container_name: minio-init
     hostname: minio-init
     networks:
@@ -149,13 +146,13 @@ services:
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c "
+      /bin/sh -ec "
       echo 'Waiting for MinIO...';
       until mc alias set minio http://minio:9000 minioadmin minioadmin 2>/dev/null; do
         sleep 1;
       done;
       echo 'MinIO is up, creating bucket...';
-      mc mb -p minio/lakehouse || true;
+      mc mb --ignore-existing minio/lakehouse;
       echo 'Bucket lakehouse is ready';
       exit 0;
       "

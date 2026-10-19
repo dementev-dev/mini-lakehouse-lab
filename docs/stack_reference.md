@@ -107,13 +107,20 @@ SHOW TABLES FROM lakehouse.default;
 - логин: `minioadmin`
 - пароль: `minioadmin`
 
-Стенд собирает MinIO Server `RELEASE.2024-10-02T17-50-41Z` и `mc`
-`RELEASE.2024-06-24T19-40-33Z` из официальных исходников. Коммиты и SHA-256 архивов
-зафиксированы в `minio/Dockerfile`. Готовые образы этих версий в Docker Hub и Quay
-больше не загружаются; бинарный архив `dl.min.io` также недоступен.
-Первая сборка компилирует Go-код и занимает несколько дополнительных минут.
-Версии сохранены ради совместимости с курсом и его MinIO Console; они больше
-не получают обновлений upstream и не предназначены для production.
+Стенд использует готовый образ `coollabsio/minio:RELEASE.2025-04-22T22-12-26Z`.
+Это сторонняя [сборка из официальных исходников MinIO](https://github.com/coollabsio/minio),
+которая содержит сервер и клиент `mc` версии `RELEASE.2025-08-13T08-35-41Z`.
+Версия сервера предшествует [изменению встроенной консоли в мае 2025 года](https://github.com/minio/minio/releases/tag/RELEASE.2025-05-24T17-08-30Z).
+Образ подходит для локального курса; это историческая
+версия без текущих обновлений, не production-конфигурация.
+
+В Compose закреплён digest индекса для AMD64 и ARM64:
+`sha256:a4938f37f1be1841b8e7b627ad0207b265345fd0d063e42d7410c78af0e63e68`.
+Сервисы `minio` и `minio-init` используют один образ. Компиляция MinIO и установка
+Go не нужны. По умолчанию образ скачивается из GHCR без авторизации. Автор
+публикует тот же digest в Docker Hub; резервный источник выбирается через
+`MINIO_REGISTRY=docker.io` в `.env`. Подробности — в
+[инструкции по доступу к репозиториям](./network_access.md).
 
 Бакет `lakehouse` обычно создаётся автоматически контейнером `minio-init`.
 
@@ -210,7 +217,7 @@ JupyterLab остаётся запасным интерфейсом. Он ред
 | `jupyter/Dockerfile` | образ JupyterLab на базе Spark |
 | `ide/Dockerfile` | code-server и расширения на базе образа Jupyter |
 | `ide/lakehouse.code-workspace` | папки рабочей области и настройки Python |
-| `minio/Dockerfile` | сборка закреплённых исходников MinIO Server и `mc` |
+| `docs/network_access.md` | источники образов и зависимостей, резервный registry и диагностика сети |
 
 ## Smoke-тесты
 
@@ -229,6 +236,9 @@ bash tests/browser_ide.sh
 ноутбук не меняется. Скриншот остаётся в каталоге `/tmp/lakehouse-browser-check.*`,
 путь печатается перед запуском. Docker Desktop этим скриптом не проверяется:
 он использует Linux host networking.
+
+Для проверки отдельного стенда можно задать `COMPOSE_FILE` и `IDE_URL`; по
+умолчанию тест использует текущий Compose-проект и `http://localhost:8889`.
 
 ### 1. Проверка, что Spark-кластер жив
 

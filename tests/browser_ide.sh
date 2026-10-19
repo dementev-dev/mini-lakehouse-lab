@@ -9,6 +9,7 @@ docker compose exec -T ide cp /opt/work/01_environment_and_smoke_test.ipynb \
   /tmp/lakehouse-browser-smoke.ipynb
 
 docker run --rm --network host --shm-size=1g \
+  -e IDE_URL="${IDE_URL:-http://localhost:8889}" \
   -v "$PWD:/repo:ro" -v "$artifact_dir:/artifacts" \
   mcr.microsoft.com/playwright:v1.56.1-noble \
   bash -c 'npm install --prefix /tmp/browser-test --no-audit --no-fund playwright@1.56.1 >/dev/null &&
