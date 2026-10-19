@@ -65,9 +65,18 @@ MinIO и PostgreSQL. У каждого worker-а в Compose указаны 2 CPU
 
 Проверка 19 октября 2026 года: Linux x86_64, Docker Engine, 6 CPU и около
 11,1 ГиБ памяти, видимых Docker. Выполнены первый ноутбук в Chromium и проверка
-Spark → Iceberg → Trino. Прогона всех восьми модулей с измерением пиков памяти
-и диска не было; минимальный объем RAM не установлен. Docker Desktop и ARM64
-в этой проверке не запускались.
+Spark → Iceberg → Trino. Затем Trino проверен с лимитом контейнера 2 ГиБ и heap
+1 ГиБ на трех месяцах Taxi: 9 554 778 строк bronze, 9 418 184 строк silver
+и 265 зон. Запросы Модуля 6 и дополнительный JOIN со справочником прошли;
+агрегаты и JOIN сверены со Spark. Пик памяти контейнера Trino по cgroup составил
+около 1,25 ГиБ, событий OOM и перезапусков не было.
+
+Наблюдавшийся суммарный пик памяти контейнеров без неактивного файлового кэша
+составил около 5,44 ГиБ. Это измерение выбранного сценария, а не проверка всей
+среды под общим лимитом 8 ГБ: память Docker daemon, ядра и других процессов
+Linux/WSL2 в сумму не входит. Прогона всех восьми модулей под таким лимитом
+не было. Docker Desktop и ARM64 в этой проверке не запускались.
+Методика и результаты сохранены в [отчете проверки](../plans/trino-memory-validation.md).
 
 Размеры локально собранных образов на этой машине: Spark — около 3,37 ГБ,
 Jupyter — 3,72 ГБ, IDE — 4,90 ГБ. Jupyter включает слои Spark, IDE включает слои
@@ -107,6 +116,27 @@ docker compose exec ide python3 /opt/src/spark/cluster_smoke.py
 ### Trino
 
 - Web UI: `http://localhost:8090`
+- Контейнер ограничен 2 ГиБ RAM (`mem_limit: 2g`). `memswap_limit: 2g`
+  отключает swap для него: одинаковое значение задает общий предел RAM + swap.
+- В [`trino/jvm.config`](../trino/jvm.config) heap Java начинается с 512 МиБ
+  и может вырасти до 1 ГиБ (`-Xms512M`, `-Xmx1G`). Остальная память контейнера
+  оставлена для потоков, служебных структур JVM и буферов вне heap.
+
+Эти ограничения относятся к Trino; у всего Compose-проекта общего лимита
+памяти нет. Если контейнер достигнет жесткого предела, он может быть завершен
+системой. Увеличение только heap без изменения бюджета контейнера уменьшает
+запас для памяти вне heap. См. [лимиты Compose](https://docs.docker.com/reference/compose-file/services/#mem_limit)
+и [настройку JVM Trino](https://trino.io/docs/current/installation/deployment.html#jvm-config).
+
+После обновления этих файлов примени настройки из терминала хоста:
+
+```bash
+docker compose up -d --no-deps --force-recreate trino
+docker compose ps -a trino
+```
+
+Дождись `healthy`. Эта операция пересоздает только Trino и применяет в том числе
+изменения содержимого `jvm.config`; таблицы остаются в MinIO и PostgreSQL.
 
 CLI внутри контейнера:
 
@@ -240,6 +270,7 @@ JupyterLab остаётся запасным интерфейсом. Он ред
 | `docker-compose.yml` | состав сервисов, порты, volumes, init-контейнеры |
 | `spark/spark-defaults.conf` | Spark master, catalog `lakehouse`, `s3a`, Iceberg extensions |
 | `trino/catalog/lakehouse.properties` | каталог Trino `lakehouse`, JDBC и S3-доступ |
+| `trino/jvm.config` | JVM Trino: heap до 1 ГиБ внутри контейнера с лимитом 2 ГиБ |
 | `spark/Dockerfile` | образ Spark с Iceberg, S3A и Python-зависимостями |
 | `jupyter/Dockerfile` | образ JupyterLab на базе Spark |
 | `ide/Dockerfile` | code-server и расширения на базе образа Jupyter |

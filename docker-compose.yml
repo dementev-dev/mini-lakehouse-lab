@@ -231,6 +231,9 @@ services:
     image: trinodb/trino:478
     container_name: trino
     hostname: trino
+    # Heap JVM ограничен отдельно в trino/jvm.config; остальное — запас вне heap.
+    mem_limit: 2g
+    memswap_limit: 2g
     networks:
       - spark-net
     depends_on:
@@ -245,6 +248,7 @@ services:
       - "8090:8080"   # Web UI Trino
     volumes:
       - ./trino/catalog:/etc/trino/catalog:ro
+      - ./trino/jvm.config:/etc/trino/jvm.config:ro
 
 networks:
   spark-net:
