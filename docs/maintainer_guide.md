@@ -34,6 +34,7 @@
 | `spark/`, `trino/`, `jupyter/`, `ide/` | Конкретные runtime-конфиги и образы | Описание программы курса |
 | `README.md` | Верхнеуровневое объяснение репозитория, архитектуры и точек входа | Пошаговый student onboarding во всех деталях и low-level runtime reference |
 | `START_HERE.md` | Первый маршрут студента: prerequisites, запуск, первые UI, первый ноутбук, базовая диагностика | Полный PRD курса или подробный бэклог модулей |
+| `docs/study_workflow.md` | Повседневный маршрут: продолжить и закончить занятие, сохранить результат, восстановиться после ошибки | Состав модулей, установка окружения с нуля |
 | `docs/stack_reference.md` | Технический reference стенда: сервисы, порты, доступ, reset, smoke-тесты | Роль основного onboarding-документа или описание всей программы курса |
 | `docs/course_prd.md` | Product scope, аудитория, learning outcomes, dataset strategy, out of scope | Технические мелочи запуска контейнеров |
 | `docs/course_program.md` | Модульная структура курса, состав материалов, checkpoints | Подробные docker-команды и legacy-лабы |
@@ -75,6 +76,7 @@
 
 - `START_HERE.md`;
 - `docs/course_program.md`;
+- `docs/study_workflow.md`;
 - соответствующие `notebooks/`;
 - `README.md`, если меняется верхнеуровневый вход в репозиторий.
 

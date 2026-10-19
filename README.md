@@ -63,17 +63,23 @@ graph TB
 
 ## С чего начать
 
-1. Открой [START_HERE.md](./START_HERE.md) — запуск стенда, диагностика, первый ноутбук.
-2. Пройди `notebooks/01_environment_and_smoke_test.ipynb`.
-3. Дальше по порядку: [docs/course_program.md](./docs/course_program.md).
+1. Открой [START_HERE.md](./START_HERE.md) — подготовка, запуск и первый ноутбук
+   с ожидаемым результатом.
+2. Продолжи по [маршруту из восьми модулей](./docs/course_program.md#маршрут-по-модулям).
+3. Между занятиями используй [памятку учащегося](./docs/study_workflow.md):
+   остановка, продолжение работы и диагностика.
 
-Краткий запуск из корня репозитория:
+Для одного учащегося рекомендуем компьютер с 16 ГБ RAM, не менее 4 CPU и
+10 ГБ памяти, доступных Docker, а также от 20 ГБ свободного места перед сборкой.
+Подробности и границы проверки — в [системных требованиях](./START_HERE.md#системные-требования).
+
+Краткий запуск из корня репозитория после подготовки по `START_HERE`:
 
 ```bash
 docker compose pull minio minio-init postgres trino
 docker compose build
 docker compose up -d
-docker compose ps
+docker compose ps -a
 ```
 
 MinIO скачивается готовым из GHCR, его версия и digest закреплены. Если какой-то
@@ -96,7 +102,8 @@ Python и venv не нужны. Оба интерфейса доступны т�
 
 ## Документы для прохождения
 
-- [START_HERE.md](./START_HERE.md) — первый маршрут: prerequisites, запуск, диагностика.
+- [START_HERE.md](./START_HERE.md) — подготовка компьютера, запуск и первый результат.
+- [docs/study_workflow.md](./docs/study_workflow.md) — памятка для каждого занятия и помощь при ошибках.
 - [docs/course_program.md](./docs/course_program.md) — модульная структура и состав учебных материалов.
 - [docs/stack_reference.md](./docs/stack_reference.md) — порты, команды, конфиги, шпаргалка.
 - [docs/glossary.md](./docs/glossary.md) — справочник терминов (storage, catalog, compute, snapshot и др.).
