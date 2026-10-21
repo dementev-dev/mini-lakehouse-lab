@@ -17,7 +17,7 @@
 
 | Зона | Где лежит | Назначение |
 | --- | --- | --- |
-| Runtime / stand | `docker-compose.yml`, `spark/`, `trino/`, `jupyter/` | Топология сервисов, образы, конфиги, порты |
+| Runtime / stand | `docker-compose.yml`, `spark/`, `trino/`, `jupyter/`, `ide/` | Топология сервисов, образы, конфиги, порты |
 | Onboarding | `README.md`, `START_HERE.md` | Вход в репозиторий и первый пользовательский маршрут |
 | Runtime reference | `docs/stack_reference.md` | Технические детали стенда: порты, доступ, команды, smoke-тесты |
 | Course definition | `docs/course_prd.md`, `docs/course_program.md` | Границы курса, learning outcomes, структура модулей |
@@ -31,9 +31,10 @@
 | Файл или каталог | За что отвечает | Что не стоит туда складывать |
 | --- | --- | --- |
 | `docker-compose.yml` | Реальный состав сервисов, контейнеров, сетей, портов и зависимостей | Учебные пояснения, которые не нужны для запуска |
-| `spark/`, `trino/`, `jupyter/` | Конкретные runtime-конфиги и образы | Описание программы курса |
+| `spark/`, `trino/`, `jupyter/`, `ide/` | Конкретные runtime-конфиги и образы | Описание программы курса |
 | `README.md` | Верхнеуровневое объяснение репозитория, архитектуры и точек входа | Пошаговый student onboarding во всех деталях и low-level runtime reference |
 | `START_HERE.md` | Первый маршрут студента: prerequisites, запуск, первые UI, первый ноутбук, базовая диагностика | Полный PRD курса или подробный бэклог модулей |
+| `docs/study_workflow.md` | Повседневный маршрут: продолжить и закончить занятие, сохранить результат, восстановиться после ошибки | Состав модулей, установка окружения с нуля |
 | `docs/stack_reference.md` | Технический reference стенда: сервисы, порты, доступ, reset, smoke-тесты | Роль основного onboarding-документа или описание всей программы курса |
 | `docs/course_prd.md` | Product scope, аудитория, learning outcomes, dataset strategy, out of scope | Технические мелочи запуска контейнеров |
 | `docs/course_program.md` | Модульная структура курса, состав материалов, checkpoints | Подробные docker-команды и legacy-лабы |
@@ -75,6 +76,7 @@
 
 - `START_HERE.md`;
 - `docs/course_program.md`;
+- `docs/study_workflow.md`;
 - соответствующие `notebooks/`;
 - `README.md`, если меняется верхнеуровневый вход в репозиторий.
 

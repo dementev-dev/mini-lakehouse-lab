@@ -121,7 +121,8 @@ services:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-10-02T17-50-41Z
+    # Один и тот же образ опубликован автором в GHCR и Docker Hub.
+    image: &minio-image ${MINIO_REGISTRY:-ghcr.io}/coollabsio/minio:RELEASE.2025-04-22T22-12-26Z@sha256:a4938f37f1be1841b8e7b627ad0207b265345fd0d063e42d7410c78af0e63e68
     container_name: minio
     hostname: minio
     networks:
@@ -137,7 +138,7 @@ services:
       - minio-data:/data
 
   minio-init:
-    image: quay.io/minio/mc:RELEASE.2024-06-24T19-40-33Z-cpuv1
+    image: *minio-image
     container_name: minio-init
     hostname: minio-init
     networks:
@@ -145,13 +146,13 @@ services:
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c "
+      /bin/sh -ec "
       echo 'Waiting for MinIO...';
       until mc alias set minio http://minio:9000 minioadmin minioadmin 2>/dev/null; do
         sleep 1;
       done;
       echo 'MinIO is up, creating bucket...';
-      mc mb -p minio/lakehouse || true;
+      mc mb --ignore-existing minio/lakehouse;
       echo 'Bucket lakehouse is ready';
       exit 0;
       "
@@ -160,6 +161,8 @@ services:
   jupyter:
     build:
       context: ./jupyter
+      additional_contexts:
+        spark-runtime: service:spark-master
       args:
         NB_UID: ${NB_UID:-1000}
         NB_GID: ${NB_GID:-100}
@@ -192,10 +195,45 @@ services:
       - ./src:/opt/src:ro
       - ./data:/opt/data:ro
 
+  ide:
+    build:
+      context: ./ide
+      additional_contexts:
+        jupyter-runtime: service:jupyter
+    container_name: ide
+    hostname: ide
+    depends_on:
+      - spark-master
+      - minio
+      - iceberg-catalog-init
+    networks:
+      - spark-net
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - PYTHONPATH=/opt/src
+    ports:
+      - "127.0.0.1:8889:8889"
+    volumes:
+      - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+      - ./notebooks:/opt/work
+      - ./src:/opt/src:ro
+      - ./data:/opt/data:ro
+      - .:/opt/course:ro
+      - ./notebooks:/opt/course/notebooks
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8889/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
   trino:
     image: trinodb/trino:478
     container_name: trino
     hostname: trino
+    # Heap JVM ограничен отдельно в trino/jvm.config; остальное — запас вне heap.
+    mem_limit: 2g
+    memswap_limit: 2g
     networks:
       - spark-net
     depends_on:
@@ -210,6 +248,7 @@ services:
       - "8090:8080"   # Web UI Trino
     volumes:
       - ./trino/catalog:/etc/trino/catalog:ro
+      - ./trino/jvm.config:/etc/trino/jvm.config:ro
 
 networks:
   spark-net:

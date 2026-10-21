@@ -15,19 +15,26 @@
 | MinIO API | `minio` | `9000` | S3-compatible endpoint |
 | MinIO Console | `minio` | `9001` | веб-консоль бакетов и объектов |
 | PostgreSQL | `postgres-iceberg` | `5432` | JDBC-каталог Iceberg |
-| JupyterLab | `jupyter` | `8888` | практические ноутбуки |
+| JupyterLab | `jupyter` | `8888` | основной интерфейс для ноутбуков и терминала |
+| VS Code в браузере (code-server) | `ide` | `8889` | альтернативный интерфейс для тех же ноутбуков |
 
 ## Основные команды
 
-Все команды выполняются из корня репозитория.
+Все команды выполняются в терминале хоста из корня репозитория.
+Для первого запуска и настройки прав используй [START_HERE](../START_HERE.md),
+для продолжения работы — [памятку учащегося](./study_workflow.md).
 
 ### Сборка и запуск
 
 ```bash
+docker compose pull minio minio-init postgres trino
 docker compose build
 docker compose up -d
-docker compose ps
+docker compose ps -a
 ```
+
+JupyterLab и VS Code собираются и запускаются вместе; выбирать интерфейс
+можно после старта стенда.
 
 ### Логи
 
@@ -36,16 +43,50 @@ docker compose logs -f spark-master
 docker compose logs -f trino
 docker compose logs -f minio
 docker compose logs -f jupyter
+docker compose logs -f ide
 ```
 
 ### Остановка и reset
 
-```bash
-docker compose down
-docker compose down -v
-```
+| Действие | Команда | Что происходит с данными |
+| --- | --- | --- |
+| Пауза до следующего занятия | `docker compose stop` | Контейнеры остановлены, файлы и volumes сохранены |
+| Продолжение | `docker compose up -d` | Сервисы запускаются с прежними данными |
+| Удаление контейнеров и сети | `docker compose down` | Volumes и файлы на хосте сохраняются, состояние внутри удаленных контейнеров теряется |
+| Полный сброс учебных данных | См. [отдельную инструкцию](./study_workflow.md#начать-с-чистых-данных) | Удаляются MinIO volume и каталог PostgreSQL |
 
-`down -v` удаляет volumes и возвращает стенд в чистое состояние.
+Переменные Python и живые Spark-сессии после остановки нужно создать заново.
+
+## Ресурсы и проверенная среда
+
+Актуальный бюджет для учащегося приведен в
+[системных требованиях](../START_HERE.md#системные-требования).
+Он учитывает одновременную работу двух Spark worker-ов, драйвера в Jupyter, Trino,
+MinIO и PostgreSQL. У каждого worker-а в Compose указаны 2 CPU и 2 ГБ для
+приложений Spark; это не предел потребления всей JVM или контейнера.
+Потребление при простое не показывает пик во время урока.
+
+Проверка 19 октября 2026 года: Linux x86_64, Docker Engine, 6 CPU и около
+11,1 ГиБ памяти, видимых Docker. Выполнены первый ноутбук в Chromium и проверка
+Spark → Iceberg → Trino. Затем Trino проверен с лимитом контейнера 2 ГиБ и heap
+1 ГиБ на трех месяцах Taxi: 9 554 778 строк bronze, 9 418 184 строк silver
+и 265 зон. Запросы Модуля 6 и дополнительный JOIN со справочником прошли;
+агрегаты и JOIN сверены со Spark. Пик памяти контейнера Trino по cgroup составил
+около 1,25 ГиБ, событий OOM и перезапусков не было.
+
+Наблюдавшийся суммарный пик памяти контейнеров без неактивного файлового кэша
+составил около 5,44 ГиБ. Это измерение выбранного сценария, а не проверка всей
+среды под общим лимитом 8 ГБ: память Docker daemon, ядра и других процессов
+Linux/WSL2 в сумму не входит. Прогона всех восьми модулей под таким лимитом
+не было. Docker Desktop и ARM64 в этой проверке не запускались.
+Методика и результаты сохранены в [отчете проверки](../plans/trino-memory-validation.md).
+
+Размеры локально собранных образов на этой машине: Spark — около 3,37 ГБ,
+Jupyter — 3,72 ГБ, IDE — 4,90 ГБ. Jupyter включает слои Spark, IDE включает слои
+Jupyter: складывать эти три числа для оценки места неправильно. IDE добавляет
+около 1,18 ГБ. IDE вместе с отдельными образами Trino, PostgreSQL и MinIO дает
+около 8,1 ГБ до учета кэша сборки, данных и особенностей хранилища Docker.
+Поэтому перед первой сборкой нужен запас места сверх размера готовых образов.
 
 ## Доступ к сервисам
 
@@ -72,13 +113,33 @@ docker compose down -v
 Пример запуска smoke-скрипта:
 
 ```bash
-docker compose exec spark-master \
-  /opt/spark/bin/spark-submit /opt/src/spark/cluster_smoke.py
+docker compose exec jupyter python3 /opt/src/spark/cluster_smoke.py
 ```
 
 ### Trino
 
 - Web UI: `http://localhost:8090`
+- Контейнер ограничен 2 ГиБ RAM (`mem_limit: 2g`). `memswap_limit: 2g`
+  отключает swap для него: одинаковое значение задает общий предел RAM + swap.
+- В [`trino/jvm.config`](../trino/jvm.config) heap Java начинается с 512 МиБ
+  и может вырасти до 1 ГиБ (`-Xms512M`, `-Xmx1G`). Остальная память контейнера
+  оставлена для потоков, служебных структур JVM и буферов вне heap.
+
+Эти ограничения относятся к Trino; у всего Compose-проекта общего лимита
+памяти нет. Если контейнер достигнет жесткого предела, он может быть завершен
+системой. Увеличение только heap без изменения бюджета контейнера уменьшает
+запас для памяти вне heap. См. [лимиты Compose](https://docs.docker.com/reference/compose-file/services/#mem_limit)
+и [настройку JVM Trino](https://trino.io/docs/current/installation/deployment.html#jvm-config).
+
+После обновления этих файлов примени настройки из терминала хоста:
+
+```bash
+docker compose up -d --no-deps --force-recreate trino
+docker compose ps -a trino
+```
+
+Дождись `healthy`. Эта операция пересоздает только Trino и применяет в том числе
+изменения содержимого `jvm.config`; таблицы остаются в MinIO и PostgreSQL.
 
 CLI внутри контейнера:
 
@@ -106,7 +167,20 @@ SHOW TABLES FROM lakehouse.default;
 - логин: `minioadmin`
 - пароль: `minioadmin`
 
-Стенд использует зафиксированные исторические образы MinIO Server и `mc` из официального namespace `quay.io/minio`. Эти версии подходят для локального курса, но больше не получают обновлений upstream и не предназначены для production.
+Стенд использует готовый образ `coollabsio/minio:RELEASE.2025-04-22T22-12-26Z`.
+Это сторонняя [сборка из официальных исходников MinIO](https://github.com/coollabsio/minio),
+которая содержит сервер и клиент `mc` версии `RELEASE.2025-08-13T08-35-41Z`.
+Версия сервера предшествует [изменению встроенной консоли в мае 2025 года](https://github.com/minio/minio/releases/tag/RELEASE.2025-05-24T17-08-30Z).
+Образ подходит для локального курса; это историческая
+версия без текущих обновлений, не production-конфигурация.
+
+В Compose закреплён digest индекса для AMD64 и ARM64:
+`sha256:a4938f37f1be1841b8e7b627ad0207b265345fd0d063e42d7410c78af0e63e68`.
+Сервисы `minio` и `minio-init` используют один образ. Компиляция MinIO и установка
+Go не нужны. По умолчанию образ скачивается из GHCR без авторизации. Автор
+публикует тот же digest в Docker Hub; резервный источник выбирается через
+`MINIO_REGISTRY=docker.io` в `.env`. Подробности — в
+[инструкции по доступу к репозиториям](./network_access.md).
 
 Бакет `lakehouse` обычно создаётся автоматически контейнером `minio-init`.
 
@@ -128,18 +202,85 @@ docker compose run --rm iceberg-catalog-init
 
 ### JupyterLab
 
-- адрес: `http://localhost:8888`
-- порт опубликован только на `127.0.0.1` хоста;
-- аутентификация и XSRF-проверка отключены для локального одно-пользовательского стенда;
-- через VS Code Remote-SSH используй `Existing Jupyter Server` с адресом `http://127.0.0.1:8888/` без token;
-- `./notebooks` смонтирован как `/opt/work`
-- `./src` смонтирован read-only как `/opt/src`
-- `./data` смонтирован read-only как `/opt/data`
-- `PYTHONPATH=/opt/src`
+Основной интерфейс курса: `http://localhost:8888`. Открой ноутбук из списка
+файлов слева; ядро **Python 3 (ipykernel)** выполняется внутри `jupyter`.
+Локальный Python или venv не нужен.
 
-Первый ноутбук курса: `notebooks/01_environment_and_smoke_test.ipynb`.
+- Порт опубликован только на `127.0.0.1` хоста.
+- Аутентификация и XSRF-проверка отключены для локального однопользовательского стенда.
+- `./notebooks` смонтирован как `/opt/work` для чтения и записи.
+- `./src` и `./data` доступны только для чтения как `/opt/src` и `/opt/data`.
+- `PYTHONPATH=/opt/src`.
 
-Для Модуля 3 локально скачанный data bundle должен лежать на хосте в `./data/nyc_taxi` и будет доступен внутри Jupyter по пути `/opt/data/nyc_taxi`.
+Для готового стенда на удалённой машине открой туннель в терминале своего компьютера:
+
+```bash
+ssh -N -L 8888:127.0.0.1:8888 user@host
+```
+
+Подставь свой SSH-адрес вместо `user@host`, оставь терминал открытым и перейди
+на `http://localhost:8888`. Первый ноутбук:
+`notebooks/01_environment_and_smoke_test.ipynb`. Перед Модулем 3 скачанный
+на хост data bundle должен лежать в `./data/nyc_taxi`; в контейнере он доступен
+как `/opt/data/nyc_taxi`.
+
+### VS Code в браузере
+
+Это альтернативный интерфейс, который запускается вместе с JupyterLab.
+Используй его по желанию; основной маршрут курса описан для JupyterLab.
+
+Открой `http://localhost:8889`. Сервис `ide` запускает code-server с установленными
+расширениями Python и Jupyter. Python, ipykernel, Java, PySpark и зависимости курса
+уже находятся в образе. Локальный Python или venv не нужен.
+
+В рабочей области доступны ноутбуки, примеры из `src/` и документация. Репозиторий
+смонтирован в `/opt/course` только для чтения, а его каталог `notebooks/` — для
+чтения и записи. Так относительные ссылки между документами и ноутбуками работают
+и внутри IDE. Пути `/opt/work`, `/opt/src`, `/opt/data` также доступны примерам курса.
+Если сверху виден **Restricted Mode**, нажми **Manage → Trust** и закрой окно
+Workspace Trust. Подтверди доверие только к своей копии учебного репозитория.
+В папке **Ноутбуки** открой `01_environment_and_smoke_test.ipynb`, нажми
+**Select Kernel → Python Environments** и выбери `/usr/bin/python3`. Это Python
+внутри контейнера IDE. Расширение Jupyter запускает ядро там же; адрес отдельного
+Jupyter Server вводить не требуется. Запускай ячейки через `Shift+Enter`, сохраняй
+через **File → Save** (`Ctrl+S`; на macOS — `Cmd+S`). Терминал IDE тоже работает
+внутри контейнера; команды `docker compose` выполняй на хосте стенда.
+
+Совместимость зависит от браузера, его расширений и средств защиты на компьютере.
+При проверке с Windows, Edge и Kaspersky сам редактор открывался, а ноутбук
+блокировался дополнительной политикой безопасности страницы. Похожий случай
+описан в [обсуждении code-server](https://github.com/coder/code-server/discussions/7457).
+Если видишь `Error loading webview` или `Could not register service worker`
+даже на `localhost`, продолжи в JupyterLab. Настраивать или отключать защиту
+ради прохождения курса не требуется. Открытие окна VS Code само по себе
+не подтверждает работу ноутбуков: проверь запуск ячейки и её вывод.
+
+Порт IDE опубликован только на `127.0.0.1`, без пароля, для одного пользователя.
+Открывай именно `localhost` или `127.0.0.1`: браузер считает их доверенным
+контекстом даже по HTTP. Notebook webview использует service worker; при обращении
+по обычному HTTP к IP сервера или имени в локальной сети этот механизм может
+быть недоступен. Это ограничение secure context, отдельное от CORS и XSRF.
+См. [secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)
+и [webviews в code-server](https://coder.com/docs/code-server/FAQ#why-do-web-views-not-work).
+
+Для стенда на удалённой машине используй SSH-туннель:
+
+```bash
+ssh -N -L 8889:127.0.0.1:8889 user@host
+```
+
+Затем открой `http://localhost:8889` на своём компьютере. Прямой доступ по
+публичному адресу не входит в эту конфигурацию.
+
+Образы собираются в порядке `spark-master → jupyter → ide` через Compose
+`additional_contexts` (нужен Docker Compose 2.17+ и BuildKit). Версии code-server
+и расширений зафиксированы в `ide/Dockerfile`; расширения скачиваются при сборке.
+Автоматическое обновление расширений отключено, чтобы повторный запуск использовал
+проверенные версии.
+
+Файлы ноутбуков общие с JupyterLab, а ядра и переменные Python отдельные.
+Перед сменой интерфейса сохрани ноутбук, выполни `spark.stop()` и останови ядро.
+Не редактируй один файл в двух интерфейсах одновременно.
 
 ## Как связаны Spark, Trino, PostgreSQL и MinIO
 
@@ -157,16 +298,45 @@ docker compose run --rm iceberg-catalog-init
 | `docker-compose.yml` | состав сервисов, порты, volumes, init-контейнеры |
 | `spark/spark-defaults.conf` | Spark master, catalog `lakehouse`, `s3a`, Iceberg extensions |
 | `trino/catalog/lakehouse.properties` | каталог Trino `lakehouse`, JDBC и S3-доступ |
+| `trino/jvm.config` | JVM Trino: heap до 1 ГиБ внутри контейнера с лимитом 2 ГиБ |
 | `spark/Dockerfile` | образ Spark с Iceberg, S3A и Python-зависимостями |
 | `jupyter/Dockerfile` | образ JupyterLab на базе Spark |
+| `ide/Dockerfile` | code-server и расширения на базе образа Jupyter |
+| `ide/lakehouse.code-workspace` | папки рабочей области и настройки Python |
+| `docs/network_access.md` | источники образов и зависимостей, резервный registry и диагностика сети |
+| `docs/study_workflow.md` | повседневная работа, сохранение состояния и диагностика ошибок |
 
 ## Smoke-тесты
+
+### JupyterLab и первый ноутбук
+
+Пройди [первый запуск ноутбука](../START_HERE.md#как-работать-с-ноутбуками):
+открой Модуль 1, выбери **Python 3 (ipykernel)**, выполни ячейки и сверь вывод
+Spark. После сохранения и повторного открытия вывод должен остаться в файле.
+
+### Дополнительная IDE и Jupyter-ноутбук
+
+На Linux с Docker Engine, после запуска стенда:
+
+```bash
+bash tests/browser_ide.sh
+```
+
+Проверка запускает Chromium в отдельном контейнере и проходит путь студента:
+доверие рабочей области → открытие копии Модуля 1 → выбор Python → Run All →
+вывод Spark в webview → сохранение → повторное открытие. Затем проверяет, что
+все кодовые ячейки выполнились без ошибок и результат сохранился. Исходный
+ноутбук не меняется. Скриншот остаётся в каталоге `/tmp/lakehouse-browser-check.*`,
+путь печатается перед запуском. Docker Desktop этим скриптом не проверяется:
+он использует Linux host networking.
+
+Для проверки отдельного стенда можно задать `COMPOSE_FILE` и `IDE_URL`; по
+умолчанию тест использует текущий Compose-проект и `http://localhost:8889`.
 
 ### 1. Проверка, что Spark-кластер жив
 
 ```bash
-docker compose exec spark-master \
-  /opt/spark/bin/spark-submit /opt/src/spark/cluster_smoke.py
+docker compose exec jupyter python3 /opt/src/spark/cluster_smoke.py
 ```
 
 ### 2. Проверка Spark -> Trino через общий каталог
@@ -259,6 +429,7 @@ SELECT * FROM <table> FOR VERSION AS OF <snapshot_id>;
 
 - `README.md` — чтобы понять, что это за репозиторий и куда идти дальше.
 - `START_HERE.md` — чтобы впервые поднять стенд и пройти Модуль 1.
+- `study_workflow.md` — чтобы продолжить занятие, сохранить результат и разобраться с ошибкой.
 - `stack_reference.md` — чтобы быстро вспомнить порты, команды, точки доступа, шпаргалку и smoke-тесты.
 - `course_program.md` — чтобы понять учебную траекторию дальше первого модуля.
 - `glossary.md` — чтобы вернуться к определению термина (storage, catalog, compute, snapshot и др.).

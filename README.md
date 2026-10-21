@@ -17,14 +17,15 @@
 
 ## Стек
 
-Всё работает локально в Docker. Никаких облаков, внешних зависимостей и регистраций.
+Всё работает локально в Docker. Для первой сборки и скачивания учебных данных
+нужен интернет; облачный аккаунт не требуется.
 
 ```mermaid
 graph TB
     U[Student / engineer]
 
     subgraph Access
-        J[JupyterLab<br/>notebooks / PySpark]
+        J[JupyterLab<br/>Notebooks / PySpark]
         Q[Trino UI / CLI<br/>ad hoc SQL]
     end
 
@@ -54,41 +55,60 @@ graph TB
 | `PostgreSQL` | Catalog — метаданные JDBC-каталога `lakehouse` |
 | `Spark` | Compute — ETL, запись и чтение Iceberg-таблиц |
 | `Trino` | Compute — ad hoc SQL, чтение тех же таблиц |
-| `JupyterLab` | Точка входа — практические ноутбуки курса |
+| `JupyterLab` | Основной интерфейс — ноутбуки курса, Python и терминал внутри Docker |
+| `code-server` | VS Code в браузере — альтернативный интерфейс для тех же ноутбуков |
 
 Ноутбуки подключаются к Spark-кластеру с
 [готовыми настройками стенда](./docs/stack_reference.md#spark).
 
 ## С чего начать
 
-1. Открой [START_HERE.md](./START_HERE.md) — запуск стенда, диагностика, первый ноутбук.
-2. Пройди `notebooks/01_environment_and_smoke_test.ipynb`.
-3. Дальше по порядку: [docs/course_program.md](./docs/course_program.md).
+1. Открой [START_HERE.md](./START_HERE.md) — подготовка, запуск и первый ноутбук
+   с ожидаемым результатом.
+2. Продолжи по [маршруту из восьми модулей](./docs/course_program.md#маршрут-по-модулям).
+3. Между занятиями используй [памятку учащегося](./docs/study_workflow.md):
+   остановка, продолжение работы и диагностика.
 
-Краткий запуск из корня репозитория:
+Для одного учащегося рекомендуем компьютер с 16 ГБ RAM, не менее 4 CPU и
+ориентировочно 8 ГБ памяти для Docker, а также от 20 ГБ свободного места перед сборкой.
+Trino ограничен 2 ГиБ памяти контейнера и 1 ГиБ Java heap.
+Подробности и границы проверки — в [системных требованиях](./START_HERE.md#системные-требования).
+
+Краткий запуск из корня репозитория после подготовки по `START_HERE`:
 
 ```bash
+docker compose pull minio minio-init postgres trino
 docker compose build
 docker compose up -d
-docker compose ps
+docker compose ps -a
 ```
 
-Зафиксированные исторические образы MinIO загружаются из официального Quay registry; подробности — в [техническом reference](./docs/stack_reference.md#minio).
+MinIO скачивается готовым из GHCR, его версия и digest закреплены. Если какой-то
+источник недоступен из твоей сети, начни с
+[инструкции по доступу к репозиториям](./docs/network_access.md).
 
 После старта:
 
 | UI | Адрес |
 | --- | --- |
 | JupyterLab | `http://localhost:8888` |
+| VS Code в браузере (по желанию) | `http://localhost:8889` |
 | Spark Master | `http://localhost:8080` |
 | Trino | `http://localhost:8090` |
 | MinIO Console | `http://localhost:9001` |
 
-JupyterLab опубликован только на loopback-интерфейсе хоста и рассчитан на локальный одно-пользовательский стенд. Подключение через VS Code Remote-SSH описано в [START_HERE.md](./START_HERE.md#как-работать-в-jupyter).
+Открой ноутбук в JupyterLab: Python работает внутри контейнера, локальный
+Python и venv не нужны. JupyterLab доступен только с хоста стенда.
+Первый запуск ноутбука описан в [START_HERE.md](./START_HERE.md#как-работать-с-ноутбуками).
+
+VS Code запускается вместе со стендом. Его можно использовать по желанию;
+он совместим не со всеми сочетаниями браузера, расширений и средств защиты.
+[Выбор ядра и доступ к удалённому стенду](./docs/stack_reference.md#vs-code-в-браузере).
 
 ## Документы для прохождения
 
-- [START_HERE.md](./START_HERE.md) — первый маршрут: prerequisites, запуск, диагностика.
+- [START_HERE.md](./START_HERE.md) — подготовка компьютера, запуск и первый результат.
+- [docs/study_workflow.md](./docs/study_workflow.md) — памятка для каждого занятия и помощь при ошибках.
 - [docs/course_program.md](./docs/course_program.md) — модульная структура и состав учебных материалов.
 - [docs/stack_reference.md](./docs/stack_reference.md) — порты, команды, конфиги, шпаргалка.
 - [docs/glossary.md](./docs/glossary.md) — справочник терминов (storage, catalog, compute, snapshot и др.).
