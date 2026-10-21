@@ -15,8 +15,8 @@
 | MinIO API | `minio` | `9000` | S3-compatible endpoint |
 | MinIO Console | `minio` | `9001` | веб-консоль бакетов и объектов |
 | PostgreSQL | `postgres-iceberg` | `5432` | JDBC-каталог Iceberg |
-| VS Code в браузере (code-server) | `ide` | `8889` | основной интерфейс для ноутбуков и терминала |
-| JupyterLab | `jupyter` | `8888` | запасной интерфейс для тех же ноутбуков |
+| JupyterLab | `jupyter` | `8888` | основной интерфейс для ноутбуков и терминала |
+| VS Code в браузере (code-server) | `ide` | `8889` | альтернативный интерфейс для тех же ноутбуков |
 
 ## Основные команды
 
@@ -32,6 +32,9 @@ docker compose build
 docker compose up -d
 docker compose ps -a
 ```
+
+JupyterLab и VS Code собираются и запускаются вместе; выбирать интерфейс
+можно после старта стенда.
 
 ### Логи
 
@@ -58,7 +61,7 @@ docker compose logs -f ide
 
 Актуальный бюджет для учащегося приведен в
 [системных требованиях](../START_HERE.md#системные-требования).
-Он учитывает одновременную работу двух Spark worker-ов, драйвера в IDE, Trino,
+Он учитывает одновременную работу двух Spark worker-ов, драйвера в Jupyter, Trino,
 MinIO и PostgreSQL. У каждого worker-а в Compose указаны 2 CPU и 2 ГБ для
 приложений Spark; это не предел потребления всей JVM или контейнера.
 Потребление при простое не показывает пик во время урока.
@@ -110,7 +113,7 @@ Jupyter: складывать эти три числа для оценки ме�
 Пример запуска smoke-скрипта:
 
 ```bash
-docker compose exec ide python3 /opt/src/spark/cluster_smoke.py
+docker compose exec jupyter python3 /opt/src/spark/cluster_smoke.py
 ```
 
 ### Trino
@@ -197,7 +200,34 @@ psql -h localhost -p 5432 -U iceberg -d iceberg
 docker compose run --rm iceberg-catalog-init
 ```
 
+### JupyterLab
+
+Основной интерфейс курса: `http://localhost:8888`. Открой ноутбук из списка
+файлов слева; ядро **Python 3 (ipykernel)** выполняется внутри `jupyter`.
+Локальный Python или venv не нужен.
+
+- Порт опубликован только на `127.0.0.1` хоста.
+- Аутентификация и XSRF-проверка отключены для локального однопользовательского стенда.
+- `./notebooks` смонтирован как `/opt/work` для чтения и записи.
+- `./src` и `./data` доступны только для чтения как `/opt/src` и `/opt/data`.
+- `PYTHONPATH=/opt/src`.
+
+Для готового стенда на удалённой машине открой туннель в терминале своего компьютера:
+
+```bash
+ssh -N -L 8888:127.0.0.1:8888 user@host
+```
+
+Подставь свой SSH-адрес вместо `user@host`, оставь терминал открытым и перейди
+на `http://localhost:8888`. Первый ноутбук:
+`notebooks/01_environment_and_smoke_test.ipynb`. Перед Модулем 3 скачанный
+на хост data bundle должен лежать в `./data/nyc_taxi`; в контейнере он доступен
+как `/opt/data/nyc_taxi`.
+
 ### VS Code в браузере
+
+Это альтернативный интерфейс, который запускается вместе с JupyterLab.
+Используй его по желанию; основной маршрут курса описан для JupyterLab.
 
 Открой `http://localhost:8889`. Сервис `ide` запускает code-server с установленными
 расширениями Python и Jupyter. Python, ipykernel, Java, PySpark и зависимости курса
@@ -207,10 +237,23 @@ docker compose run --rm iceberg-catalog-init
 смонтирован в `/opt/course` только для чтения, а его каталог `notebooks/` — для
 чтения и записи. Так относительные ссылки между документами и ноутбуками работают
 и внутри IDE. Пути `/opt/work`, `/opt/src`, `/opt/data` также доступны примерам курса.
-Открой
-`01_environment_and_smoke_test.ipynb`, нажми **Select Kernel → Python Environments**
-и выбери `/usr/bin/python3`. Это Python внутри контейнера IDE. Расширение Jupyter
-запускает ядро там же; адрес отдельного Jupyter Server вводить не требуется.
+Если сверху виден **Restricted Mode**, нажми **Manage → Trust** и закрой окно
+Workspace Trust. Подтверди доверие только к своей копии учебного репозитория.
+В папке **Ноутбуки** открой `01_environment_and_smoke_test.ipynb`, нажми
+**Select Kernel → Python Environments** и выбери `/usr/bin/python3`. Это Python
+внутри контейнера IDE. Расширение Jupyter запускает ядро там же; адрес отдельного
+Jupyter Server вводить не требуется. Запускай ячейки через `Shift+Enter`, сохраняй
+через **File → Save** (`Ctrl+S`; на macOS — `Cmd+S`). Терминал IDE тоже работает
+внутри контейнера; команды `docker compose` выполняй на хосте стенда.
+
+Совместимость зависит от браузера, его расширений и средств защиты на компьютере.
+При проверке с Windows, Edge и Kaspersky сам редактор открывался, а ноутбук
+блокировался дополнительной политикой безопасности страницы. Похожий случай
+описан в [обсуждении code-server](https://github.com/coder/code-server/discussions/7457).
+Если видишь `Error loading webview` или `Could not register service worker`
+даже на `localhost`, продолжи в JupyterLab. Настраивать или отключать защиту
+ради прохождения курса не требуется. Открытие окна VS Code само по себе
+не подтверждает работу ноутбуков: проверь запуск ячейки и её вывод.
 
 Порт IDE опубликован только на `127.0.0.1`, без пароля, для одного пользователя.
 Открывай именно `localhost` или `127.0.0.1`: браузер считает их доверенным
@@ -235,24 +278,9 @@ ssh -N -L 8889:127.0.0.1:8889 user@host
 Автоматическое обновление расширений отключено, чтобы повторный запуск использовал
 проверенные версии.
 
-### JupyterLab
-
-- адрес: `http://localhost:8888`
-- порт опубликован только на `127.0.0.1` хоста;
-- аутентификация и XSRF-проверка отключены для локального одно-пользовательского стенда;
-- через VS Code Remote-SSH используй `Existing Jupyter Server` с адресом `http://127.0.0.1:8888/` без token;
-- `./notebooks` смонтирован как `/opt/work`
-- `./src` смонтирован read-only как `/opt/src`
-- `./data` смонтирован read-only как `/opt/data`
-- `PYTHONPATH=/opt/src`
-
-JupyterLab остаётся запасным интерфейсом. Он редактирует те же файлы, но запускает
-отдельные ядра: переменные Python между IDE и JupyterLab не общие. Перед сменой
-интерфейса сохрани ноутбук и останови его ядро.
-
-Первый ноутбук курса: `notebooks/01_environment_and_smoke_test.ipynb`.
-
-Для Модуля 3 локально скачанный data bundle должен лежать на хосте в `./data/nyc_taxi` и будет доступен внутри Jupyter по пути `/opt/data/nyc_taxi`.
+Файлы ноутбуков общие с JupyterLab, а ядра и переменные Python отдельные.
+Перед сменой интерфейса сохрани ноутбук, выполни `spark.stop()` и останови ядро.
+Не редактируй один файл в двух интерфейсах одновременно.
 
 ## Как связаны Spark, Trino, PostgreSQL и MinIO
 
@@ -280,7 +308,13 @@ JupyterLab остаётся запасным интерфейсом. Он ред
 
 ## Smoke-тесты
 
-### Браузерная IDE и Jupyter-ноутбук
+### JupyterLab и первый ноутбук
+
+Пройди [первый запуск ноутбука](../START_HERE.md#как-работать-с-ноутбуками):
+открой Модуль 1, выбери **Python 3 (ipykernel)**, выполни ячейки и сверь вывод
+Spark. После сохранения и повторного открытия вывод должен остаться в файле.
+
+### Дополнительная IDE и Jupyter-ноутбук
 
 На Linux с Docker Engine, после запуска стенда:
 
@@ -302,7 +336,7 @@ bash tests/browser_ide.sh
 ### 1. Проверка, что Spark-кластер жив
 
 ```bash
-docker compose exec ide python3 /opt/src/spark/cluster_smoke.py
+docker compose exec jupyter python3 /opt/src/spark/cluster_smoke.py
 ```
 
 ### 2. Проверка Spark -> Trino через общий каталог

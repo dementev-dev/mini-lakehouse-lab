@@ -25,7 +25,7 @@ graph TB
     U[Student / engineer]
 
     subgraph Access
-        J[VS Code в браузере<br/>Jupyter notebooks / PySpark]
+        J[JupyterLab<br/>Notebooks / PySpark]
         Q[Trino UI / CLI<br/>ad hoc SQL]
     end
 
@@ -55,8 +55,8 @@ graph TB
 | `PostgreSQL` | Catalog — метаданные JDBC-каталога `lakehouse` |
 | `Spark` | Compute — ETL, запись и чтение Iceberg-таблиц |
 | `Trino` | Compute — ad hoc SQL, чтение тех же таблиц |
-| `code-server` | VS Code в браузере — ноутбуки курса, Python и терминал внутри Docker |
-| `JupyterLab` | Запасной интерфейс для тех же ноутбуков |
+| `JupyterLab` | Основной интерфейс — ноутбуки курса, Python и терминал внутри Docker |
+| `code-server` | VS Code в браузере — альтернативный интерфейс для тех же ноутбуков |
 
 Ноутбуки подключаются к Spark-кластеру с
 [готовыми настройками стенда](./docs/stack_reference.md#spark).
@@ -91,15 +91,19 @@ MinIO скачивается готовым из GHCR, его версия и di
 
 | UI | Адрес |
 | --- | --- |
-| VS Code в браузере | `http://localhost:8889` |
-| JupyterLab (запасной интерфейс) | `http://localhost:8888` |
+| JupyterLab | `http://localhost:8888` |
+| VS Code в браузере (по желанию) | `http://localhost:8889` |
 | Spark Master | `http://localhost:8080` |
 | Trino | `http://localhost:8090` |
 | MinIO Console | `http://localhost:9001` |
 
-Открой ноутбук в браузерном VS Code и выбери Python внутри контейнера: локальный
-Python и venv не нужны. Оба интерфейса доступны только с хоста стенда.
+Открой ноутбук в JupyterLab: Python работает внутри контейнера, локальный
+Python и venv не нужны. JupyterLab доступен только с хоста стенда.
 Первый запуск ноутбука описан в [START_HERE.md](./START_HERE.md#как-работать-с-ноутбуками).
+
+VS Code запускается вместе со стендом. Его можно использовать по желанию;
+он совместим не со всеми сочетаниями браузера, расширений и средств защиты.
+[Выбор ядра и доступ к удалённому стенду](./docs/stack_reference.md#vs-code-в-браузере).
 
 ## Документы для прохождения
 
