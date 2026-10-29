@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: iceberg
       POSTGRES_PASSWORD: iceberg
     ports:
-      - "5432:5432"                 # опционально, чтобы заходить с хоста через DBeaver/psql
+      - "127.0.0.1:5432:5432"                 # опционально, чтобы заходить с хоста через DBeaver/psql
     networks:
       - spark-net
     volumes:
@@ -71,8 +71,8 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
     command: ["/opt/spark/sbin/start-master.sh"]
     ports:
-      - "7077:7077"   # Spark master
-      - "8080:8080"   # Web UI мастера
+      - "127.0.0.1:7077:7077"   # Spark master
+      - "127.0.0.1:8080:8080"   # Web UI мастера
     volumes:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
@@ -94,7 +94,7 @@ services:
     depends_on:
       - spark-master
     ports:
-      - "8081:8081"   # Web UI первого воркера
+      - "127.0.0.1:8081:8081"   # Web UI первого воркера
     volumes:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
@@ -116,7 +116,7 @@ services:
     depends_on:
       - spark-master
     ports:
-      - "8082:8081"   # Web UI второго воркера (host 8082)
+      - "127.0.0.1:8082:8081"   # Web UI второго воркера (host 8082)
     volumes:
       - ./spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
 
@@ -132,8 +132,8 @@ services:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio-data:/data
 
@@ -245,7 +245,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - AWS_REGION=us-east-1
     ports:
-      - "8090:8080"   # Web UI Trino
+      - "127.0.0.1:8090:8080"   # Web UI Trino
     volumes:
       - ./trino/catalog:/etc/trino/catalog:ro
       - ./trino/jvm.config:/etc/trino/jvm.config:ro
